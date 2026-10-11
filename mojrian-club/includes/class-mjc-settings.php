@@ -49,7 +49,6 @@ class MJC_Settings {
 			'points_per_10m'      => 10,
 			'project_points_max'  => 0,
 			'dashboard_banner_id' => 0,
-			'manager_message'     => '',
 			'points_rules'        => self::default_rules(),
 			'pages'               => array(),
 		);
@@ -135,7 +134,6 @@ class MJC_Settings {
 			'points_per_meter'      => isset( $_POST['points_per_meter'] ) ? max( 0, (float) $_POST['points_per_meter'] ) : 2,
 			'points_per_10m'        => isset( $_POST['points_per_10m'] ) ? max( 0, (float) $_POST['points_per_10m'] ) : 10,
 			'project_points_max'    => isset( $_POST['project_points_max'] ) ? max( 0, (int) $_POST['project_points_max'] ) : 0,
-			'manager_message'       => isset( $_POST['manager_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['manager_message'] ) ) : '',
 			'points_rules'          => $rules,
 		);
 		$color = $data['primary_color'];

@@ -229,6 +229,14 @@ class MJC_DB {
 			KEY created_at (created_at)
 		) $charset;";
 
+		$sqls[] = "CREATE TABLE {$p}broadcasts (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			message LONGTEXT NOT NULL,
+			created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+			PRIMARY KEY  (id),
+			KEY created_at (created_at)
+		) $charset;";
 
 		foreach ( $sqls as $sql ) {
 			dbDelta( $sql );

@@ -489,7 +489,7 @@ class MJC_Shortcodes {
 		$label     = mjc_get_setting( 'points_label', 'امتیاز' );
 		$earned    = (float) MJC_DB::var( 'SELECT COALESCE(SUM(amount),0) FROM ' . mjc_table( 'points_ledger' ) . ' WHERE user_id = %d AND amount > 0', array( $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$banner_id = (int) mjc_get_setting( 'dashboard_banner_id', 0 );
-		$mgr_msg   = (string) mjc_get_setting( 'manager_message', '' );
+		$bcast    = mjc_latest_broadcast();
 		$campaigns = get_posts( array( 'post_type' => 'mjc_campaign', 'post_status' => 'publish', 'numberposts' => 3, 'orderby' => 'date', 'order' => 'DESC', 'no_found_rows' => true ) );
 		list( $notifications ) = MJC_Notify::list_for_user( $user_id, 1, 10 );
 
@@ -539,7 +539,12 @@ class MJC_Shortcodes {
 		}
 		echo '</div>';
 		echo '<div class="mjc-card"><h3>پیام مدیر</h3><div class="mjc-mgr-msg">';
-		echo $mgr_msg ? wp_kses_post( wpautop( $mgr_msg ) ) : '<p class="mjc-empty">پیامی ثبت نشده است.</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		if ( $bcast ) {
+			echo wp_kses_post( wpautop( $bcast->message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<p class="mjc-text-sm mjc-mgr-msg-date">ارسال: ' . esc_html( mjc_date( $bcast->created_at, false ) ) . '</p>';
+		} else {
+			echo '<p class="mjc-empty">پیامی ثبت نشده است.</p>';
+		}
 		echo '</div></div>';
 		echo '</div>';
 
@@ -844,7 +849,7 @@ class MJC_Shortcodes {
 		ob_start();
 		echo '<div class="mjc-card">';
 		echo '<h1 class="mjc-center mjc-rewards-title">جایزه خود را انتخاب نمایید</h1>';
-		echo '<p class="mjc-center mjc-text-sm">یکی از جوایز را انتخاب نمایید و کلید ارسال را بزنید. در صورتی که امتیاز شما به امتیاز جایزه انتخاب‌شده برسد، در لیست ارسال‌ها اضافه می‌شود.</p>';
+		echo '<p class="mjc-center mjc-text-sm">برای دریافت جایزه روی دکمه زیر کلیک کنید</p>';
 
 		if ( ! $member->address || ! $member->postal_code ) {
 			echo '<p class="mjc-center mjc-text-sm" style="color:#b45309">برای ارسال جایزه، لطفاً «نشانی» و «کد پستی» را در بخش <a href="' . esc_url( mjc_page_url( 'profile' ) ) . '">تکمیل اطلاعات کاربر</a> وارد نمایید.</p>';
@@ -860,14 +865,15 @@ class MJC_Shortcodes {
 			$can   = ( $balance >= $cost && $stock > 0 );
 			echo '<label class="mjc-prize' . ( $can ? '' : ' mjc-prize-off' ) . '">';
 			echo '<input type="radio" name="reward_id" value="' . esc_attr( $it->ID ) . '"' . ( $can ? '' : ' disabled' ) . ' />';
-			echo '<span class="mjc-prize-circle">';
-			if ( has_post_thumbnail( $it->ID ) ) {
+			echo '<span class="mjc-prize-icon">';
+			if ( $icon ) {
+				// آیکون از تصویر ماکت جدا شده؛ امتیاز داخل خود تصویر پخته است.
+				echo '<img src="' . esc_url( MJC_URL . ltrim( $icon, '/' ) ) . '" alt="' . esc_attr( $it->post_title ) . '" loading="lazy" width="180" height="180" />';
+			} elseif ( has_post_thumbnail( $it->ID ) ) {
 				echo get_the_post_thumbnail( $it->ID, 'thumbnail', array( 'class' => 'mjc-prize-img' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			} else {
-				echo '<span class="mjc-prize-icon" aria-hidden="true">' . esc_html( $icon ? $icon : '🎁' ) . '</span>';
+				echo '<span class="mjc-prize-fallback"><b class="mjc-prize-num">' . esc_html( mjc_num( number_format( $cost ) ) ) . '</b><i>' . esc_html( $label ) . ' ' . esc_html( mjc_num( number_format( $cost ) ) ) . '</i></span>';
 			}
-			echo '<b class="mjc-prize-num">' . esc_html( mjc_num( number_format( $cost ) ) ) . '</b>';
-			echo '<i>' . esc_html( $label ) . ' ' . esc_html( mjc_num( number_format( $cost ) ) ) . '</i>';
 			echo '<span class="mjc-prize-check" aria-hidden="true">✓</span>';
 			echo '</span>';
 			echo '<span class="mjc-prize-name">' . esc_html( $it->post_title ) . '</span>';

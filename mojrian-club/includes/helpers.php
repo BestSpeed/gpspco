@@ -315,3 +315,16 @@ function mjc_pretty_mobile( $mobile ) {
 	}
 	return mjc_num( $mobile );
 }
+
+/**
+ * آخرین «اعلان همگانی» ارسال‌شده توسط مدیر (پیام مدیر در داشبورد اعضا).
+ *
+ * @return object|null ردیف broadcasts (message, created_at) یا null.
+ */
+function mjc_latest_broadcast() {
+	global $wpdb;
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	$row = $wpdb->get_row( "SELECT message, created_at FROM " . mjc_table( 'broadcasts' ) . " ORDER BY id DESC LIMIT 1" );
+	// phpcs:enable
+	return $row ? $row : null;
+}

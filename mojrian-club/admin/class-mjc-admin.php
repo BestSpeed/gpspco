@@ -99,6 +99,15 @@ class MJC_Admin {
 	 * پردازش اکشن‌های ادمین.
 	 */
 	public static function handle_actions() {
+		// حذف پیام همگانی از «لیست پیام‌های ارسالی» مدیر.
+		if ( isset( $_GET['mjc_del_broadcast'] ) && current_user_can( 'mjc_manage_club' ) ) {
+			$bid = (int) $_GET['mjc_del_broadcast']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			if ( $bid && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ?? '' ) ), 'mjc_del_broadcast_' . $bid ) ) {
+				global $wpdb;
+				$wpdb->delete( mjc_table( 'broadcasts' ), array( 'id' => $bid ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				self::redirect( 'mjc-notify', 'پیام حذف شد.' );
+			}
+		}
 		// خروجی CSV.
 		if ( ! empty( $_GET['mjc_export'] ) && current_user_can( 'mjc_view_reports' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			self::export_csv( sanitize_key( wp_unslash( $_GET['mjc_export'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -139,11 +148,19 @@ class MJC_Admin {
 				self::redirect( 'mjc-tickets', 'پاسخ ثبت شد.' );
 			}
 			if ( 'broadcast' === $form && current_user_can( 'mjc_manage_club' ) && wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce'] ?? '' ) ), 'mjc_broadcast' ) ) {
+				$title = sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) );
+				$body  = sanitize_textarea_field( wp_unslash( $_POST['body'] ?? '' ) );
 				$count = MJC_Notify::broadcast(
-					sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ),
-					sanitize_text_field( wp_unslash( $_POST['body'] ?? '' ) ),
+					$title,
+					$body,
 					esc_url_raw( wp_unslash( $_POST['url'] ?? '' ) )
 				);
+				// ذخیره به‌عنوان «پیام مدیر» — در داشبورد اعضا تا ارسال پیام بعدی نمایش داده می‌شود.
+				MJC_DB::insert( 'broadcasts', array(
+					'message'    => trim( $title . "\n\n" . $body ),
+					'created_by' => get_current_user_id(),
+					'created_at' => current_time( 'mysql' ),
+				) );
 				self::redirect( 'mjc-notify', 'اعلان برای ' . $count . ' عضو ارسال شد.' );
 			}
 			if ( 'wallet_credit' === $form && current_user_can( 'mjc_manage_wallet' ) && wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce'] ?? '' ) ), 'mjc_wallet_credit' ) ) {
@@ -744,7 +761,26 @@ class MJC_Admin {
 		echo '<p><label>عنوان: <input type="text" name="title" required style="width:400px" /></label></p>';
 		echo '<p><label>متن اعلان:<br /><textarea name="body" rows="5" style="width:600px" required></textarea></label></p>';
 		echo '<p><label>نشانی (اختیاری): <input type="text" name="url" style="width:400px" placeholder="https://..." /></label></p>';
-		echo '<button class="button-primary">ارسال برای همه‌ی اعضای تأییدشده</button></form></div></div>';
+		echo '<button class="button-primary">ارسال برای همه‌ی اعضای تأییدشده</button></form></div>';
+
+		// «لیست پیام‌های ارسالی» مدیر — هر پیام تا ارسال بعدی در داشبورد اعضا نمایش داده می‌شود؛ با حذف از این لیست، پیام قبلی (در صورت وجود) جایگزین می‌شود.
+		global $wpdb;
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( 'SELECT id, message, created_at FROM ' . mjc_table( 'broadcasts' ) . ' ORDER BY id DESC LIMIT 30' );
+		// phpcs:enable
+		echo '<h2>پیام‌های ارسالی</h2><div class="mjc-admin-box">';
+		if ( $rows ) {
+			echo '<table class="widefat striped"><thead><tr><th>تاریخ ارسال</th><th>پیام</th><th>عملیات</th></tr></thead><tbody>';
+			foreach ( $rows as $r ) {
+				$del = wp_nonce_url( add_query_arg( 'mjc_del_broadcast', (int) $r->id ), 'mjc_del_broadcast_' . (int) $r->id );
+				echo '<tr><td style="white-space:nowrap">' . esc_html( mjc_date( $r->created_at ) ) . '</td><td>' . esc_html( wp_trim_words( wp_strip_all_tags( $r->message ), 30 ) ) . '</td>';
+				echo '<td><a href="' . esc_url( $del ) . '" class="button-link-delete" onclick="return confirm(\'این پیام حذف شود؟\')">حذف</a></td></tr>';
+			}
+			echo '</tbody></table>';
+		} else {
+			echo '<p>هنوز پیامی ارسال نشده است.</p>';
+		}
+		echo '</div></div>';
 	}
 
 	/**
@@ -814,7 +850,7 @@ class MJC_Admin {
 			echo '<br /><span class="description">تصویر بنر بالای داشبورد اعضا نمایش داده می‌شود.</span>';
 		}
 		echo '</td></tr>';
-		echo '<tr><th>پیام مدیر (نمایش در داشبورد اعضا)</th><td><textarea name="manager_message" rows="4" class="large-text">' . esc_textarea( mjc_get_setting( 'manager_message', '' ) ) . '</textarea></td></tr></table>';
+		echo '</table>';
 		echo '<p><button class="button-primary">ذخیره تنظیمات</button></p></form></div>';
 
 		echo '</div></div>';
