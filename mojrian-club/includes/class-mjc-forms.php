@@ -245,6 +245,8 @@ class MJC_Forms {
 			'province'     => isset( $_POST['province'] ) ? sanitize_text_field( wp_unslash( $_POST['province'] ) ) : '',
 			'city'         => isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '',
 			'units'        => isset( $_POST['units'] ) ? (int) $_POST['units'] : 0,
+			'amount'       => isset( $_POST['amount'] ) ? (int) mjc_to_en_digits( str_replace( array( ',', '،' ), '', wp_unslash( $_POST['amount'] ) ) ) : 0, // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			'area'         => isset( $_POST['area'] ) ? (float) mjc_to_en_digits( wp_unslash( $_POST['area'] ) ) : 0, // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 			'brand'        => isset( $_POST['brand'] ) ? sanitize_text_field( wp_unslash( $_POST['brand'] ) ) : '',
 			'start_date'   => isset( $_POST['start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['start_date'] ) ) : '',
 			'description'  => isset( $_POST['description'] ) ? wp_kses_post( wp_unslash( $_POST['description'] ) ) : '',

@@ -15,9 +15,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MJC_Install {
 
 	/**
-	 * هوک‌ها (بارگذاری مجدد مپینگ صفحات).
+	 * هوک‌ها: ارتقای خودکار دیتابیس هنگام به‌روزرسانی افزونه.
 	 */
-	public static function hooks() {}
+	public static function hooks() {
+		add_action( 'admin_init', array( __CLASS__, 'maybe_upgrade_db' ) );
+	}
+
+	/**
+	 * اجرای مجدد اسکیما وقتی نسخه‌ی افزونه تغییر کرده است (افزودن ستون‌های جدید و...).
+	 */
+	public static function maybe_upgrade_db() {
+		$db_version = get_option( 'mjc_db_version', '0' );
+		if ( version_compare( $db_version, MJC_VERSION, '<' ) ) {
+			MJC_DB::install();
+			self::create_pages();
+			MJC_Rewards::seed_default_rewards();
+			MJC_Guide::seed();
+			update_option( 'mjc_db_version', MJC_VERSION );
+		}
+	}
 
 	/**
 	 * اجرای فعال‌سازی.
@@ -36,7 +52,9 @@ class MJC_Install {
 		}
 
 		self::create_pages();
+		MJC_Rewards::seed_default_rewards();
 		MJC_Guide::seed();
+		update_option( 'mjc_db_version', MJC_VERSION );
 
 		flush_rewrite_rules();
 	}
@@ -53,6 +71,7 @@ class MJC_Install {
 	 */
 	public static function create_pages() {
 		$pages = array(
+			'account'       => array( 'حساب کاربری باشگاه', '[mojrian_account]' ),
 			'home'          => array( 'صفحه اصلی باشگاه', '[mojrian_home]' ),
 			'login'         => array( 'ورود', '[mojrian_login]' ),
 			'register'      => array( 'ثبت‌نام', '[mojrian_register]' ),

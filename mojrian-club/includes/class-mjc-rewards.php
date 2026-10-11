@@ -17,7 +17,83 @@ class MJC_Rewards {
 	/**
 	 * هوک‌ها.
 	 */
-	public static function hooks() {}
+	public static function hooks() {
+		add_action( 'init', array( __CLASS__, 'register_cpt' ) );
+	}
+
+	/**
+	 * ثبت نوع محتوای جایزه (فروشگاه امتیاز).
+	 */
+	public static function register_cpt() {
+		register_post_type( 'mjc_reward', array(
+			'labels'       => array(
+				'name'          => 'جوایز (فروشگاه امتیاز)',
+				'singular_name' => 'جایزه',
+				'add_new_item'  => 'افزودن جایزه جدید',
+				'edit_item'     => 'ویرایش جایزه',
+			),
+			'public'       => false,
+			'show_ui'      => true,
+			'show_in_menu' => 'mjc-dashboard',
+			'menu_icon'    => 'dashicons-awards',
+			'supports'     => array( 'title', 'editor', 'thumbnail', 'excerpt' ),
+			'capability_type' => 'post',
+		) );
+	}
+
+	/**
+	 * جوایز پیش‌فرض فروشگاه (هنگام فعال‌سازی).
+	 */
+	public static function seed_default_rewards() {
+		if ( get_option( 'mjc_rewards_seeded' ) ) {
+			return;
+		}
+		$rewards = array(
+			array(
+				'title'   => 'کارت هدیه نقدی ۵۰۰ هزار تومانی',
+				'points'  => 5000,
+				'stock'   => 50,
+				'content' => 'کارت هدیه نقدی قابل استفاده در فروشگاه‌های طرف قرارداد گروه. پس از تأیید درخواست، کد کارت هدیه برای شما ارسال می‌شود.',
+			),
+			array(
+				'title'   => 'دریل شارژی حرفه‌ای',
+				'points'  => 12000,
+				'stock'   => 20,
+				'content' => 'ابزارآلات تخصصی مورد نیاز مجریان؛ ارسال رایگان به سراسر کشور به همراه گارانتی و خدمات پس از فروش ابزارآلات.',
+			),
+			array(
+				'title'   => 'بیمه تکمیلی یک‌ساله',
+				'points'  => 20000,
+				'stock'   => 30,
+				'content' => 'بیمه تکمیلی درمان ویژه‌ی مجریان عضو باشگاه؛ پس از تأیید، هماهنگی ثبت‌نام با کارشناس باشگاه انجام می‌شود.',
+			),
+			array(
+				'title'   => 'بن خرید محصولات گروه',
+				'points'  => 3000,
+				'stock'   => 100,
+				'content' => 'بن خرید محصولات لوله و اتصالات جهت استفاده از نمایندگی‌های مجاز سراسر کشور.',
+			),
+			array(
+				'title'   => 'ست ابزار هدیه باشگاه',
+				'points'  => 1500,
+				'stock'   => 200,
+				'content' => 'ست کامل ابزار همراه مجری (پیچ‌گوشتی، آچار، متر و…) با برند باشگاه مجریان.',
+			),
+		);
+		foreach ( $rewards as $r ) {
+			$post_id = wp_insert_post( array(
+				'post_type'    => 'mjc_reward',
+				'post_status'  => 'publish',
+				'post_title'   => $r['title'],
+				'post_content' => $r['content'],
+			) );
+			if ( $post_id && ! is_wp_error( $post_id ) ) {
+				update_post_meta( $post_id, 'mjc_points_cost', (int) $r['points'] );
+				update_post_meta( $post_id, 'mjc_stock', (int) $r['stock'] );
+			}
+		}
+		update_option( 'mjc_rewards_seeded', 1 );
+	}
 
 	/**
 	 * درخواست تبدیل امتیاز به جایزه.

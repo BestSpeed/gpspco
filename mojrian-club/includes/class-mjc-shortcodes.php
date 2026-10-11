@@ -19,6 +19,7 @@ class MJC_Shortcodes {
 	 */
 	public static function hooks() {
 		$map = array(
+			'mojrian_account'       => 'render_account',
 			'mojrian_home'          => 'render_home',
 			'mojrian_login'         => 'render_login',
 			'mojrian_register'      => 'render_register',
@@ -216,6 +217,160 @@ class MJC_Shortcodes {
 	/* -------------------------------------------------------------------
 	 * صفحات عمومی
 	 * ---------------------------------------------------------------- */
+
+	/* -------------------------------------------------------------------
+	 * حساب کاربری یکپارچه (ویجت المنتور / شورت‌کد [mojrian_account])
+	 * ---------------------------------------------------------------- */
+
+	/**
+	 * صفحه‌ی حساب کاربری: مهمان → ورود/ثبت‌نام؛ عضو → هاب حساب باشگاه.
+	 *
+	 * @return string
+	 */
+	public static function render_account() {
+		ob_start();
+		echo '<div class="mjc-wrap">';
+		mjc_render_notice();
+		if ( ! is_user_logged_in() ) {
+			echo self::auth_panel();
+			echo '</div>';
+			return ob_get_clean();
+		}
+		$member = mjc_member();
+		if ( ! $member || ( 'approved' !== $member->status && ! current_user_can( 'mjc_manage_club' ) ) ) {
+			echo '<div class="mjc-card mjc-center">';
+			if ( $member && 'rejected' === $member->status ) {
+				echo '<div class="mjc-empty">متأسفانه درخواست عضویت شما پذیرفته نشد.' . ( $member->reject_reason ? ' دلیل: ' . esc_html( $member->reject_reason ) : '' ) . '</div>';
+			} else {
+				echo '<div class="mjc-empty">حساب شما در انتظار تأیید مدیر باشگاه است. پس از تأیید، حساب کاربری شما فعال می‌شود.</div>';
+			}
+			echo '<p><a class="mjc-btn mjc-btn-ghost" style="color:#334155;border-color:#cbd5e1" href="' . esc_url( wp_logout_url( mjc_page_url( 'account' ) ) ) . '">خروج از حساب</a></p></div>';
+			echo '</div>';
+			return ob_get_clean();
+		}
+		echo self::account_hub( $member );
+		echo '</div>';
+		return ob_get_clean();
+	}
+
+	/**
+	 * پنل ورود/ثبت‌نام برای مهمان (تب‌دار).
+	 *
+	 * @return string
+	 */
+	private static function auth_panel() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$tab = isset( $_GET['mjc_tab'] ) ? sanitize_key( wp_unslash( $_GET['mjc_tab'] ) ) : 'login';
+		$ref = isset( $_GET['ref'] ) ? sanitize_text_field( wp_unslash( $_GET['ref'] ) ) : '';
+		// phpcs:enable
+		$base = get_permalink();
+
+		ob_start();
+		echo '<div class="mjc-auth-card">';
+		echo '<h1 class="mjc-center">' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</h1>';
+		echo '<p class="mjc-center mjc-text-sm">برای ورود به حساب کاربری باشگاه، وارد شوید یا ثبت‌نام کنید.</p>';
+		echo '<div class="mjc-tabs">';
+		echo '<a class="mjc-tab' . ( 'login' === $tab ? ' active' : '' ) . '" href="' . esc_url( add_query_arg( 'mjc_tab', 'login', $base ) ) . '">ورود</a>';
+		echo '<a class="mjc-tab' . ( 'register' === $tab ? ' active' : '' ) . '" href="' . esc_url( add_query_arg( 'mjc_tab', 'register', $base ) ) . '">ثبت‌نام</a>';
+		echo '</div>';
+
+		if ( 'register' === $tab ) {
+			echo self::form_open( 'otp_send', 'mjc_otp' );
+			echo '<input type="hidden" name="purpose" value="register" />';
+			echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true, 'placeholder' => '09xxxxxxxxx' ) );
+			echo self::form_close( 'ارسال کد تأیید' );
+			echo '<hr class="mjc-sep" />';
+			echo self::form_open( 'register', 'mjc_register' );
+			echo self::field( array( 'name' => 'full_name', 'label' => 'نام و نام خانوادگی', 'required' => true ) );
+			echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true ) );
+			echo self::field( array( 'name' => 'otp', 'label' => 'کد تأیید پیامکی' ) );
+			echo self::field( array( 'name' => 'national_code', 'label' => 'کد ملی', 'required' => true ) );
+			echo '<div class="mjc-grid mjc-grid-2">';
+			echo self::field( array( 'name' => 'province', 'label' => 'استان', 'required' => true ) );
+			echo self::field( array( 'name' => 'city', 'label' => 'شهر' ) );
+			echo '</div>';
+			echo self::field( array(
+				'name' => 'job_type', 'label' => 'نوع فعالیت', 'type' => 'select', 'required' => true,
+				'options' => array( '' => 'انتخاب کنید', 'water' => 'آب و فاضلاب', 'gas' => 'گاز', 'heating' => 'شوفاژ و تأسیسات حرارتی', 'hvac' => 'تهویه مطبوع', 'other' => 'سایر' ),
+			) );
+			echo self::field( array( 'name' => 'experience', 'label' => 'سابقه کار (سال)', 'type' => 'number' ) );
+			echo self::field( array( 'name' => 'workshop_address', 'label' => 'نشانی کارگاه/دفتر' ) );
+			echo self::field( array( 'name' => 'password', 'label' => 'رمز عبور (حداقل ۸ کاراکتر)', 'type' => 'password', 'required' => true ) );
+			echo self::field( array( 'name' => 'referral_code', 'label' => 'کد معرف (اختیاری)', 'value' => $ref ) );
+			echo '<label class="mjc-check"><input type="checkbox" name="accept_rules" value="1" required /> <span>قوانین و حریم خصوصی باشگاه را می‌پذیرم.</span></label>';
+			echo self::form_close( 'ثبت‌نام در باشگاه' );
+		} else {
+			echo self::form_open( 'login', 'mjc_login' );
+			echo self::field( array( 'name' => 'username', 'label' => 'نام کاربری یا شماره موبایل', 'required' => true ) );
+			echo self::field( array( 'name' => 'password', 'label' => 'رمز عبور', 'type' => 'password', 'required' => true ) );
+			echo self::form_close( 'ورود به حساب' );
+			echo '<p class="mjc-center mjc-text-sm"><a href="' . esc_url( mjc_page_url( 'login' ) . '?tab=reset' ) . '">فراموشی رمز عبور</a> · <a href="' . esc_url( mjc_page_url( 'login' ) . '?tab=otp' ) . '">ورود با کد یک‌بارمصرف</a></p>';
+		}
+		echo '</div>';
+		return ob_get_clean();
+	}
+
+	/**
+	 * هاب «حساب کاربری باشگاه مجریان» — لینک‌های بخش‌های افزونه + نمایش امتیاز.
+	 *
+	 * @param object $member ردیف عضو.
+	 * @return string
+	 */
+	private static function account_hub( $member ) {
+		$unread = MJC_Notify::unread_count( get_current_user_id() );
+		$code   = $member->grade_certificate ? $member->grade_certificate : 'MJC-' . str_pad( (string) $member->id, 6, '0', STR_PAD_LEFT );
+		$label  = mjc_get_setting( 'points_label', 'امتیاز' );
+
+		ob_start();
+		echo '<div class="mjc-card mjc-dash-head mjc-account-head">';
+		echo '<div class="mjc-dash-user"><div class="mjc-avatar">' . esc_html( mb_substr( MJC_Members::display_name( $member ), 0, 1 ) ) . '</div>';
+		echo '<div><h2>حساب کاربری ' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</h2>';
+		echo '<p>' . esc_html( MJC_Members::display_name( $member ) ) . ' · کد عضویت: <strong>' . esc_html( mjc_num( $code ) ) . '</strong></p></div></div>';
+		echo '<div class="mjc-dash-badges">' . self::badge( $member->status );
+		if ( $member->grade ) {
+			echo ' <span class="mjc-badge mjc-badge-grade">' . esc_html( MJC_Grades::level_label( $member->grade ) ) . '</span>';
+		}
+		echo ' <a class="mjc-btn mjc-btn-soft" href="' . esc_url( wp_logout_url( mjc_page_url( 'account' ) ) ) . '">خروج</a>';
+		echo '</div></div>';
+
+		// کارت‌های امتیاز/کیف پول.
+		echo '<div class="mjc-stats">';
+		echo '<div class="mjc-stat mjc-stat-highlight"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( (float) $member->points_balance ) ) ) . '</span><span class="mjc-stat-label">' . esc_html( $label ) . ' من</span><a class="mjc-stat-link" href="' . esc_url( mjc_page_url( 'rewards' ) ) . '">تبدیل ' . esc_html( $label ) . 'ات به جوایز ←</a></div>';
+		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_money( $member->wallet_balance ) ) . '</span><span class="mjc-stat-label">موجودی کیف پول (ریال)</span></div>';
+		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_num( $unread ) ) . '</span><span class="mjc-stat-label">اعلان خوانده‌نشده</span></div>';
+		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( $member->grade ? MJC_Grades::level_label( $member->grade ) : '—' ) . '</span><span class="mjc-stat-label">پایه فنی</span></div>';
+		echo '</div>';
+
+		// لینک‌های بخش‌های حساب کاربری.
+		$links = array(
+			array( 'profile',       '👤', 'پروفایل من', 'ویرایش اطلاعات هویتی و حرفه‌ای' ),
+			array( 'projects',      '🏗', 'پروژه‌های من', 'ثبت پروژه جدید و پیگیری وضعیت' ),
+			array( 'points',        '⭐', 'تاریخچه ' . $label, 'مشاهده‌ی کامل کسب و مصرف ' . $label ),
+			array( 'rewards',       '🎁', 'تبدیل ' . $label . 'ات به جوایز', 'خرید جایزه با ' . $label . 'های باشگاه' ),
+			array( 'courses',       '🎓', 'دوره‌های آموزشی', 'ثبت‌نام و شرکت در دوره‌های رایگان' ),
+			array( 'knowledge',     '📚', 'بانک دانش', 'مقالات، ویدئوها و کاتالوگ‌های فنی' ),
+			array( 'surveys',       '📝', 'نظرسنجی‌ها', 'شرکت در نظرسنجی‌ها و کسب ' . $label ),
+			array( 'campaigns',     '🏆', 'کمپین‌ها و قرعه‌کشی', 'طرح‌های تشویقی و برندگان' ),
+			array( 'wallet',        '💰', 'کیف پول', 'اعتبار ریالی و درخواست برداشت' ),
+			array( 'card',          '💳', 'کارت عضویت', 'کارت دیجیتال و QR استعلام' ),
+			array( 'referral',      '🤝', 'معرفی دوستان', 'دعوت از دوستان و دریافت پاداش' ),
+			array( 'notifications', '🔔', 'اعلان‌ها', 'پیام‌های باشگاه' ),
+			array( 'guide',         '📖', 'راهنمای باشگاه', 'آموزش کار با باشگاه، گام‌به‌گام' ),
+			array( 'inquiry',       '🔍', 'استعلام فنی مجریان', 'بررسی اصالت پایه فنی' ),
+			array( 'contact',       '💬', 'ارتباط با ما', 'ثبت پیام و پشتیبانی' ),
+		);
+		echo '<div class="mjc-grid mjc-grid-3 mjc-account-links">';
+		foreach ( $links as $link ) {
+			$url     = mjc_page_url( $link[0] );
+			$badge   = ( 'notifications' === $link[0] && $unread ) ? ' <span class="mjc-badge mjc-badge-dot">' . esc_html( mjc_num( $unread ) ) . '</span>' : '';
+			echo '<a class="mjc-card mjc-account-link" href="' . esc_url( $url ) . '">';
+			echo '<span class="mjc-account-icon">' . esc_html( $link[1] ) . '</span>';
+			echo '<span class="mjc-account-text"><strong>' . esc_html( $link[2] ) . $badge . '</strong><small>' . esc_html( $link[3] ) . '</small></span>';
+			echo '<span class="mjc-account-arrow">←</span></a>';
+		}
+		echo '</div>';
+		return ob_get_clean();
+	}
 
 	/**
 	 * صفحه‌ی اصلی.
@@ -471,6 +626,14 @@ class MJC_Shortcodes {
 	public static function render_profile() {
 		$member = mjc_member();
 		ob_start();
+		if ( $member ) {
+			echo '<div class="mjc-stats">';
+			$label = mjc_get_setting( 'points_label', 'امتیاز' );
+			echo '<div class="mjc-stat mjc-stat-highlight"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( (float) $member->points_balance ) ) ) . '</span><span class="mjc-stat-label">' . esc_html( $label ) . ' من</span><a class="mjc-stat-link" href="' . esc_url( mjc_page_url( 'rewards' ) ) . '">تبدیل به جوایز ←</a></div>';
+			echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_money( $member->wallet_balance ) ) . '</span><span class="mjc-stat-label">موجودی کیف پول (ریال)</span></div>';
+			echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( $member->grade ? MJC_Grades::level_label( $member->grade ) : '—' ) . '</span><span class="mjc-stat-label">پایه فنی</span></div>';
+			echo '</div>';
+		}
 		echo '<div class="mjc-card"><h2>پروفایل من</h2>';
 		if ( $member ) {
 			echo self::form_open( 'profile', 'mjc_profile' );
@@ -491,6 +654,20 @@ class MJC_Shortcodes {
 			echo mjc_empty_state( 'پروفایلی یافت نشد.' );
 		}
 		echo '</div>';
+
+		// درخواست پایه فنی.
+		if ( $member && 'approved' === $member->status ) {
+			echo '<div class="mjc-card"><h2>درخواست ارزیابی پایه فنی</h2>';
+			echo '<p class="mjc-text-sm">با شرکت در ارزیابی علمی و عملی، پایه فنی متناسب با مهارت شما تعیین و گواهی استعلام صادر می‌شود.</p>';
+			echo self::form_open( 'grade_request', 'mjc_grade' );
+			echo self::field( array(
+				'name' => 'requested_level', 'label' => 'سطح درخواستی', 'type' => 'select', 'required' => true,
+				'options' => array( '' => 'انتخاب کنید' ) + array_map( function ( $l ) { return $l['label']; }, MJC_Grades::levels() ),
+			) );
+			echo self::field( array( 'name' => 'notes', 'label' => 'توضیحات (اختیاری)', 'type' => 'textarea', 'rows' => 3 ) );
+			echo self::form_close( 'ثبت درخواست ارزیابی' );
+			echo '</div>';
+		}
 		return self::member_layout( ob_get_clean(), false );
 	}
 
@@ -515,6 +692,10 @@ class MJC_Shortcodes {
 		echo self::field( array( 'name' => 'city', 'label' => 'شهر' ) );
 		echo '</div>';
 		echo self::field( array( 'name' => 'brand', 'label' => 'محصولات/برند استفاده‌شده' ) );
+		echo '<div class="mjc-grid mjc-grid-2">';
+		echo self::field( array( 'name' => 'amount', 'label' => 'مبلغ پروژه (ریال)', 'type' => 'number', 'placeholder' => 'مثال: ۸۵۰۰۰۰۰۰۰' ) );
+		echo self::field( array( 'name' => 'area', 'label' => 'متراژ (متر مربع)', 'type' => 'number', 'placeholder' => 'مثال: ۱۲۰' ) );
+		echo '</div>';
 		echo self::field( array( 'name' => 'start_date', 'label' => 'تاریخ شروع اجرا (شمسی)', 'placeholder' => '۱۴۰۳/۰۱/۰۱', 'class' => 'mjc-datepicker' ) );
 		echo self::field( array( 'name' => 'description', 'label' => 'توضیحات', 'type' => 'textarea' ) );
 		echo '<div class="mjc-field"><label for="f_images">تصاویر پروژه</label><input type="file" name="images[]" id="f_images" multiple accept="image/*" /></div>';
@@ -525,14 +706,15 @@ class MJC_Shortcodes {
 		$table_rows = array();
 		foreach ( $rows as $p ) {
 			$table_rows[] = array(
-				'<strong>' . esc_html( $p->title ) . '</strong>',
+				'<strong>' . esc_html( $p->title ) . '</strong>' . ( $p->description ? '<br /><span class="mjc-text-sm">' . esc_html( wp_trim_words( wp_strip_all_tags( $p->description ), 12 ) ) . '</span>' : '' ),
 				esc_html( MJC_Projects::type_label( $p->project_type ) ),
+				( $p->area > 0 ? esc_html( mjc_num( $p->area ) ) . ' متر' : '—' ) . '<br />' . ( $p->amount > 0 ? esc_html( mjc_money( $p->amount ) ) . ' ریال' : '' ),
 				esc_html( mjc_date( $p->created_at, false ) ),
 				self::badge( $p->status ) . ( 'rejected' === $p->status && $p->reject_reason ? '<br /><span class="mjc-text-sm">' . esc_html( $p->reject_reason ) . '</span>' : '' ),
 				$p->points_awarded ? '<span class="mjc-points">+' . esc_html( mjc_num( $p->points_awarded ) ) . '</span>' : '—',
 			);
 		}
-		echo self::table( array( 'عنوان', 'نوع', 'تاریخ ثبت', 'وضعیت', 'امتیاز' ), $table_rows );
+		echo self::table( array( 'عنوان', 'نوع', 'مبلغ/متراژ', 'تاریخ ثبت', 'وضعیت', 'امتیاز' ), $table_rows );
 		echo '</div></div>';
 		return self::member_layout( ob_get_clean() );
 	}

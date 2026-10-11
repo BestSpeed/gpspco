@@ -363,3 +363,29 @@
 	.mjc-table { display: block; overflow-x: auto; white-space: nowrap; }
 	.mjc-flex-between { flex-direction: column; align-items: stretch; }
 }
+
+/* حساب کاربری (ویجت المنتور / [mojrian_account]) */
+.mjc-account-head { align-items: center; }
+.mjc-stat-highlight { background: linear-gradient(135deg, var(--mjc-primary), var(--mjc-primary-dark)); border-color: transparent; }
+.mjc-stat-highlight .mjc-stat-num, .mjc-stat-highlight .mjc-stat-label { color: #fff; }
+.mjc-stat-link { display: inline-block; margin-top: 8px; color: #fff; font-size: .82rem; text-decoration: underline; }
+.mjc-account-link {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	text-decoration: none;
+	color: var(--mjc-text);
+	transition: transform .15s ease, border-color .15s ease;
+}
+.mjc-account-link:hover { transform: translateY(-3px); border-color: var(--mjc-primary); text-decoration: none; }
+.mjc-account-icon { font-size: 1.7rem; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 14px; flex-shrink: 0; }
+.mjc-account-text { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.mjc-account-text strong { font-size: .95rem; }
+.mjc-account-text small { color: var(--mjc-muted); font-size: .78rem; line-height: 1.7; }
+.mjc-account-arrow { color: var(--mjc-primary); font-weight: 800; }
+.mjc-guide-cta { display: inline-block; background: #ecfeff; color: var(--mjc-primary-dark); padding: 12px 20px; border-radius: 12px; text-decoration: none; font-weight: 700; }
+
+/* ویجت المنتور */
+.mjc-elementor-account .mjc-elementor-title { margin-bottom: 6px; }
+.mjc-elementor-account .mjc-elementor-note { color: var(--mjc-muted); margin-bottom: 16px; }
+.mjc-elementor-account .mjc-wrap { background: transparent; padding: 0; }

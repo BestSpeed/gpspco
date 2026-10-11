@@ -48,6 +48,8 @@ class MJC_Projects {
 			'province'     => sanitize_text_field( isset( $data['province'] ) ? $data['province'] : '' ),
 			'city'         => sanitize_text_field( isset( $data['city'] ) ? $data['city'] : '' ),
 			'units'        => (int) ( isset( $data['units'] ) ? $data['units'] : 0 ),
+			'amount'       => (int) ( isset( $data['amount'] ) ? $data['amount'] : 0 ),
+			'area'         => (float) ( isset( $data['area'] ) ? $data['area'] : 0 ),
 			'brand'        => sanitize_text_field( isset( $data['brand'] ) ? $data['brand'] : '' ),
 			'start_date'   => MJC_Jalali::parse_input( isset( $data['start_date'] ) ? $data['start_date'] : '' ),
 			'description'  => wp_kses_post( isset( $data['description'] ) ? $data['description'] : '' ),
@@ -62,6 +64,31 @@ class MJC_Projects {
 			MJC_Notify::push( (int) $user_id, 'ثبت پروژه', 'پروژه «' . $title . '» ثبت شد و پس از بررسی، امتیاز آن اعمال می‌شود.', mjc_page_url( 'projects' ) );
 		}
 		return $id;
+	}
+
+	/**
+	 * محاسبه‌ی امتیاز پروژه بر اساس تنظیمات (ثابت / متراژ / مبلغ).
+	 *
+	 * @param object $project ردیف پروژه.
+	 * @return int
+	 */
+	public static function calculate_points( $project ) {
+		$mode = mjc_get_setting( 'project_points_mode', 'fixed' );
+		if ( 'area' === $mode ) {
+			$rate  = (float) mjc_get_setting( 'points_per_meter', 2 );
+			$points = (int) round( (float) $project->area * $rate );
+		} elseif ( 'amount' === $mode ) {
+			$rate   = (float) mjc_get_setting( 'points_per_10m', 10 );
+			$points = (int) round( ( (float) $project->amount / 10000000 ) * $rate );
+		} else {
+			$rule   = MJC_Settings::rule( 'project_approved' );
+			$points = $rule['enabled'] ? (int) $rule['points'] : 0;
+		}
+		$max = (int) mjc_get_setting( 'project_points_max', 0 );
+		if ( $max > 0 ) {
+			$points = min( $points, $max );
+		}
+		return max( 0, $points );
 	}
 
 	/**
@@ -80,7 +107,11 @@ class MJC_Projects {
 		}
 		$points = 0;
 		if ( 'approved' === $status && 'approved' !== $project->status ) {
-			$points = MJC_Points::award_by_rule( (int) $project->user_id, 'project_approved', 'تأیید پروژه «' . $project->title . '»', 'project', (int) $project_id );
+			$points = self::calculate_points( $project );
+			if ( $points > 0 ) {
+				MJC_Points::log_transaction( (int) $project->user_id, $points, 'project_approved', 'تأیید پروژه «' . $project->title . '»', 'project', (int) $project_id );
+				MJC_Notify::push( (int) $project->user_id, 'کسب ' . mjc_get_setting( 'points_label', 'امتیاز' ), sprintf( '%s امتیاز برای «تأیید پروژه %s» به حساب شما اضافه شد.', mjc_num( $points ), $project->title ), mjc_page_url( 'points' ) );
+			}
 		}
 		MJC_DB::update( 'projects', array(
 			'status'         => sanitize_key( $status ),

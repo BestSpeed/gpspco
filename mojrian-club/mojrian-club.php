@@ -3,7 +3,7 @@
  * Plugin Name:       باشگاه مجریان | Mojrian Club
  * Plugin URI:        https://github.com/BestSpeed/gpspco
  * Description:       افزونه جامع باشگاه مجریان؛ عضویت و تأیید مجریان، ثبت پروژه، موتور امتیاز (گیتا)، پایه فنی و استعلام، دوره‌های آموزشی، بانک دانش، فروشگاه امتیاز، نظرسنجی، کمپین و قرعه‌کشی، کیف پول، کارت عضویت، راهنمای باشگاه و پنل مدیریت کامل — فارسی و راست‌به‌چپ.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            گروه صنایع گیتی پسند — تیم توسعه باشگاه مجریان
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MJC_VERSION', '1.0.0' );
+define( 'MJC_VERSION', '1.1.0' );
 define( 'MJC_PLUGIN_FILE', __FILE__ );
 define( 'MJC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MJC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -51,6 +51,7 @@ require_once MJC_PLUGIN_DIR . 'includes/class-mjc-tickets.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-guide.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-forms.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-shortcodes.php';
+require_once MJC_PLUGIN_DIR . 'includes/class-mjc-elementor.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-install.php';
 
 if ( is_admin() ) {
@@ -86,6 +87,7 @@ function mjc_run() {
 	MJC_Tickets::hooks();
 	MJC_Guide::hooks();
 	MJC_Members::hooks();
+	MJC_Elementor::hooks();
 
 	if ( is_admin() ) {
 		MJC_Metaboxes::hooks();

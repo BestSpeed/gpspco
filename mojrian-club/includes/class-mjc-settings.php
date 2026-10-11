@@ -50,6 +50,10 @@ class MJC_Settings {
 			'otp_max_per_hour'    => 5,
 			'registration_approval' => 'manual',
 			'wallet_withdraw_min' => 1000000,
+			'project_points_mode' => 'fixed',
+			'points_per_meter'    => 2,
+			'points_per_10m'      => 10,
+			'project_points_max'  => 0,
 			'points_rules'        => self::default_rules(),
 			'pages'               => array(),
 		);
@@ -125,6 +129,10 @@ class MJC_Settings {
 			'otp_max_per_hour'      => isset( $_POST['otp_max_per_hour'] ) ? max( 1, (int) $_POST['otp_max_per_hour'] ) : 5,
 			'registration_approval' => ( isset( $_POST['registration_approval'] ) && 'auto' === $_POST['registration_approval'] ) ? 'auto' : 'manual',
 			'wallet_withdraw_min'   => isset( $_POST['wallet_withdraw_min'] ) ? (int) $_POST['wallet_withdraw_min'] : 1000000,
+			'project_points_mode'   => isset( $_POST['project_points_mode'] ) && in_array( $_POST['project_points_mode'], array( 'fixed', 'area', 'amount' ), true ) ? sanitize_key( wp_unslash( $_POST['project_points_mode'] ) ) : 'fixed',
+			'points_per_meter'      => isset( $_POST['points_per_meter'] ) ? max( 0, (float) $_POST['points_per_meter'] ) : 2,
+			'points_per_10m'        => isset( $_POST['points_per_10m'] ) ? max( 0, (float) $_POST['points_per_10m'] ) : 10,
+			'project_points_max'    => isset( $_POST['project_points_max'] ) ? max( 0, (int) $_POST['project_points_max'] ) : 0,
 			'points_rules'          => $rules,
 		);
 		$color = $data['primary_color'];

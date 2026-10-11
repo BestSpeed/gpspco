@@ -492,6 +492,7 @@ class MJC_Admin {
 			'owner'   => 'ثبت‌کننده',
 			'type'    => 'نوع',
 			'units'   => 'واحد',
+			'amount'  => 'مبلغ/متراژ',
 			'date'    => 'تاریخ ثبت',
 			'status'  => 'وضعیت',
 			'actions' => 'اقدامات',
@@ -508,9 +509,10 @@ class MJC_Admin {
 				'owner'   => esc_html( ( $p->full_name ? $p->full_name : '—' ) . ' (' . MJC_SMS::pretty_mobile( $p->mobile ) . ')' ),
 				'type'    => esc_html( MJC_Projects::type_label( $p->project_type ) ),
 				'units'   => esc_html( mjc_num( $p->units ) ),
+				'amount'  => ( $p->amount > 0 ? esc_html( mjc_money( $p->amount ) ) . ' ریال' : '—' ) . '<br />' . ( $p->area > 0 ? esc_html( mjc_num( $p->area ) ) . ' متر' : '' ),
 				'date'    => esc_html( mjc_date( $p->created_at, false ) ),
 				'status'  => esc_html( mjc_status_label( $p->status ) ) . ( 'approved' === $p->status ? '<br /><span class="description">+' . esc_html( mjc_num( $p->points_awarded ) ) . ' امتیاز</span>' : '' ),
-				'actions' => ( 'approved' !== $p->status ? MJC_Admin::action_btn( 'project_approve', $p->id, 'تأیید و امتیاز' ) : '' )
+				'actions' => ( 'approved' !== $p->status ? MJC_Admin::action_btn( 'project_approve', $p->id, 'تأیید (' . MJC_Projects::calculate_points( $p ) . ' امتیاز)' ) : '' )
 					. ( 'rejected' !== $p->status ? MJC_Admin::action_btn( 'project_reject', $p->id, 'رد', 'button-secondary', array( 'reason' => 'مغایرت با شرایط ثبت پروژه' ) ) : '' ),
 			);
 		};
@@ -750,7 +752,7 @@ class MJC_Admin {
 			wp_die( 'دسترسی غیرمجاز.' );
 		}
 		self::page_header( 'تنظیمات باشگاه' );
-		$s = get_option( 'mjc_settings', MJC_Settings::defaults() );
+		$s = array_merge( MJC_Settings::defaults(), (array) get_option( 'mjc_settings', array() ) );
 
 		echo '<div class="mjc-admin-cols"><div class="mjc-admin-box"><h2>تنظیمات عمومی</h2><form method="post">';
 		wp_nonce_field( 'mjc_save_settings', 'mjc_settings_nonce' );
@@ -759,6 +761,16 @@ class MJC_Admin {
 		echo '<tr><th>رنگ اصلی</th><td><input type="color" name="primary_color" value="' . esc_attr( $s['primary_color'] ) . '" /></td></tr>';
 		echo '<tr><th>تأیید ثبت‌نام</th><td><select name="registration_approval"><option value="manual" ' . selected( $s['registration_approval'], 'manual', false ) . '>دستی توسط مدیر</option><option value="auto" ' . selected( $s['registration_approval'], 'auto', false ) . '>خودکار</option></select></td></tr>';
 		echo '<tr><th>حداقل مبلغ برداشت (ریال)</th><td><input type="number" name="wallet_withdraw_min" value="' . esc_attr( $s['wallet_withdraw_min'] ) . '" /></td></tr></table>';
+
+		echo '<h2>امتیازدهی پروژه‌ها</h2><table class="form-table">';
+		echo '<tr><th>محاسبه امتیاز هر پروژه</th><td><select name="project_points_mode">';
+		echo '<option value="fixed" ' . selected( $s['project_points_mode'], 'fixed', false ) . '>ثابت (مطابق قوانین امتیاز)</option>';
+		echo '<option value="area" ' . selected( $s['project_points_mode'], 'area', false ) . '>بر اساس متراژ</option>';
+		echo '<option value="amount" ' . selected( $s['project_points_mode'], 'amount', false ) . '>بر اساس مبلغ پروژه</option>';
+		echo '</select></td></tr>';
+		echo '<tr><th>امتیاز به ازای هر متر مربع</th><td><input type="number" step="0.5" name="points_per_meter" value="' . esc_attr( $s['points_per_meter'] ) . '" /></td></tr>';
+		echo '<tr><th>امتیاز به ازای هر ۱۰ میلیون ریال</th><td><input type="number" step="0.5" name="points_per_10m" value="' . esc_attr( $s['points_per_10m'] ) . '" /></td></tr>';
+		echo '<tr><th>سقف امتیاز هر پروژه (۰ = بدون سقف)</th><td><input type="number" name="project_points_max" value="' . esc_attr( $s['project_points_max'] ) . '" /></td></tr></table>';
 
 		echo '<h2>پیامک</h2><table class="form-table">';
 		echo '<tr><th>درگاه</th><td><select name="sms_gateway"><option value="log" ' . selected( $s['sms_gateway'], 'log', false ) . '>حالت توسعه (ثبت در گزارش پیامک)</option><option value="kavenegar" ' . selected( $s['sms_gateway'], 'kavenegar', false ) . '>کاوه‌نگار</option></select></td></tr>';
