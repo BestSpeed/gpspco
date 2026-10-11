@@ -730,27 +730,75 @@ class MJC_Shortcodes {
 		$paged = isset( $_GET['mpage'] ) ? max( 1, (int) $_GET['mpage'] ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		list( $rows, $total ) = MJC_Projects::list_for_user( get_current_user_id(), $paged, 10 );
 
-		ob_start();
-		echo '<div class="mjc-grid mjc-grid-2">';
-		echo '<div class="mjc-card"><h2>ثبت پروژه تاسیسات</h2>';
+				ob_start();
+		echo '<div class="mjc-card">';
+		echo '<h2 class="mjc-center">ثبت اطلاعات پروژه</h2>';
+		echo '<p class="mjc-center mjc-text-sm">قسمت‌هایی که با نشانه «ضروری» مشاهده می‌شود حتما کامل گردد.</p>';
 		echo self::form_open( 'project', 'mjc_project' );
-		echo self::field( array( 'name' => 'title', 'label' => 'عنوان پروژه', 'required' => true ) );
-		echo '<div class="mjc-grid mjc-grid-2">';
-		echo self::field( array( 'name' => 'project_type', 'label' => 'نوع پروژه', 'type' => 'select', 'options' => array( '' => 'انتخاب کنید' ) + MJC_Projects::TYPES ) );
-		echo self::field( array( 'name' => 'units', 'label' => 'تعداد واحد', 'type' => 'number' ) );
-		echo self::field( array( 'name' => 'province', 'label' => 'استان' ) );
-		echo self::field( array( 'name' => 'city', 'label' => 'شهر' ) );
+		echo '<div class="mjc-mock-form mjc-mock-wide" dir="rtl">';
+
+		// نوع کاربری پروژه — رادیویی.
+		echo '<div class="mjc-mf-label">نوع کاربری پروژه <em>(ضروری)</em></div>';
+		echo '<div class="mjc-mf-radios">';
+		foreach ( MJC_Projects::TYPES as $tkey => $tlabel ) {
+			echo '<label class="mjc-radio"><input type="radio" name="project_type" value="' . esc_attr( $tkey ) . '" required /> <span>' . esc_html( $tlabel ) . '</span></label>';
+		}
 		echo '</div>';
-		echo self::field( array( 'name' => 'brand', 'label' => 'محصولات/برند استفاده‌شده' ) );
-		echo '<div class="mjc-grid mjc-grid-2">';
-		echo self::field( array( 'name' => 'amount', 'label' => 'مبلغ پروژه (ریال)', 'type' => 'number', 'placeholder' => 'مثال: ۸۵۰۰۰۰۰۰۰' ) );
-		echo self::field( array( 'name' => 'area', 'label' => 'متراژ (متر مربع)', 'type' => 'number', 'placeholder' => 'مثال: ۱۲۰' ) );
+
+		$num_hint = 'لطفا گزینه را در حالت تایپ قرار دهید و سپس عدد را تایپ کنید';
+		echo '<div class="mjc-mf-label">تعداد طبقات پروژه <em>(ضروری)</em></div>';
+		echo '<p class="mjc-mf-hint">' . esc_html( $num_hint ) . '</p>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="number" min="1" name="floors" required /></div>';
+
+		echo '<div class="mjc-mf-label">تعداد واحد پروژه <em>(ضروری)</em></div>';
+		echo '<p class="mjc-mf-hint">' . esc_html( $num_hint ) . '</p>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="number" min="1" name="units" required /></div>';
+
+		echo '<div class="mjc-mf-label">متراژ کل مساحت پروژه <em>(ضروری)</em></div>';
+		echo '<p class="mjc-mf-hint">' . esc_html( $num_hint ) . '</p>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="number" min="1" step="any" name="area" required /></div>';
+
+		echo '<div class="mjc-mf-label">مبلغ پروژه (ریال) <em>(ضروری)</em></div>';
+		echo '<p class="mjc-mf-hint">مبلغ کل قرارداد پروژه به ریال (برای محاسبه امتیاز بر اساس مبلغ)</p>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" inputmode="numeric" name="amount" required /></div>';
+
+		// بارگذاری تصاویر — مطابق ماکت.
+		echo '<div class="mjc-mf-label mjc-mf-upload-head">تصاویر خود را در این قسمت بارگذاری نمایید</div>';
+		$accept_note = 'انواع فایل های مجاز : jpg, jpeg, png, bmp + حداکثر اندازه فایل : ۲۰ MB';
+		$uploads     = array(
+			array( 'عنوان' => 'عکس ۱ (تصویر یا کتالوگ)', 'hint' => '' ),
+			array( 'عنوان' => 'عکس ۲ (تصویری از پلمپ محصولات)', 'hint' => 'تصویری از پلمپ محصولات را ارسال فرمایید' ),
+			array( 'عنوان' => 'عکس ۳ (تصویر نهایی محصولات نصب‌شده)', 'hint' => 'تصویری از محصولات نصب‌شده قبل از اجرای سیستم تأسیسات ارسال فرمایید' ),
+			array( 'عنوان' => 'عکس ۴ (تصویر برند)', 'hint' => 'تصویری از برند محصولات استفاده‌شده در اجرای تأسیسات ارسال فرمایید' ),
+			array( 'عنوان' => 'عکس ۵ (تصویر از تاسیسات)', 'hint' => '' ),
+			array( 'عنوان' => 'عکس ۶ (تصویر از تاسیسات)', 'hint' => '' ),
+		);
+		$fi = 0;
+		foreach ( $uploads as $up ) {
+			$fi++;
+			echo '<div class="mjc-upload-row">';
+			echo '<div class="mjc-mf-label">' . esc_html( $up['عنوان'] ) . ' <em>(ضروری)</em></div>';
+			if ( $up['hint'] ) {
+				echo '<p class="mjc-mf-hint">' . esc_html( $up['hint'] ) . '</p>';
+			}
+			echo '<input type="file" name="images[]" accept=".jpg,.jpeg,.png,.bmp" required />';
+			echo '<p class="mjc-mf-hint">' . esc_html( $accept_note ) . '</p>';
+			echo '</div>';
+		}
+		echo '<div class="mjc-upload-row">';
+		echo '<div class="mjc-mf-label">فیلم</div>';
+		echo '<p class="mjc-mf-hint">در صورت تمایل، فیلم پروژه را ارسال نمایید</p>';
+		echo '<input type="file" name="film" accept=".mp4,.mkv,.mov,.avi" />';
+		echo '<p class="mjc-mf-hint">انواع فایل های مجاز : mp4, mkv + حداکثر اندازه فایل : ۵۰ MB</p>';
 		echo '</div>';
-		echo self::field( array( 'name' => 'start_date', 'label' => 'تاریخ شروع اجرا (شمسی)', 'placeholder' => '۱۴۰۳/۰۱/۰۱', 'class' => 'mjc-datepicker' ) );
-		echo self::field( array( 'name' => 'description', 'label' => 'توضیحات', 'type' => 'textarea' ) );
-		echo '<div class="mjc-field"><label for="f_images">تصاویر پروژه</label><input type="file" name="images[]" id="f_images" multiple accept="image/*" /></div>';
-		echo self::form_close( 'ثبت پروژه' );
+
+		echo '<div class="mjc-mf-actions">';
+		echo '<label class="mjc-check"><input type="checkbox" name="accept_rules" value="1" required /> <span>تأیید مقررات</span></label>';
+		echo '<button type="submit" class="mjc-btn mjc-btn-primary">ارسال</button>';
 		echo '</div>';
+		echo '</div>';
+		echo '</form>';
+
 
 		echo '<div class="mjc-card"><h2>پروژه‌های من</h2>';
 		$table_rows = array();
@@ -765,7 +813,7 @@ class MJC_Shortcodes {
 			);
 		}
 		echo self::table( array( 'عنوان', 'نوع', 'مبلغ/متراژ', 'تاریخ ثبت', 'وضعیت', 'امتیاز' ), $table_rows );
-		echo '</div></div>';
+		echo '</div>';
 		return self::member_layout( ob_get_clean() );
 	}
 

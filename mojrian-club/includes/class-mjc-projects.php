@@ -15,11 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MJC_Projects {
 
 	const TYPES = array(
-		'residential' => 'مسکونی',
-		'commercial'  => 'تجاری/اداری',
-		'industrial'  => 'صنعتی',
-		'governmental'=> 'دولتی/عمومی',
-		'other'       => 'سایر',
+		'new'            => 'نوسازی',
+		'renovation'     => 'بازسازی',
+		'repair'         => 'تعمیر',
+		'cultural_sport' => 'اماکن فرهنگی و ورزشی',
+		'other_places'   => 'سایر اماکن',
 	);
 
 	/**
@@ -37,7 +37,7 @@ class MJC_Projects {
 	public static function create( $user_id, $data ) {
 		$title = sanitize_text_field( isset( $data['title'] ) ? $data['title'] : '' );
 		if ( '' === $title ) {
-			return new WP_Error( 'mjc_fields', 'عنوان پروژه الزامی است.' );
+			$title = 'پروژه ' . mjc_date( current_time( 'mysql' ), false );
 		}
 		$images = isset( $data['images'] ) ? array_map( 'intval', (array) $data['images'] ) : array();
 
@@ -48,6 +48,8 @@ class MJC_Projects {
 			'province'     => sanitize_text_field( isset( $data['province'] ) ? $data['province'] : '' ),
 			'city'         => sanitize_text_field( isset( $data['city'] ) ? $data['city'] : '' ),
 			'units'        => (int) ( isset( $data['units'] ) ? $data['units'] : 0 ),
+			'floors'       => (int) ( isset( $data['floors'] ) ? $data['floors'] : 0 ),
+			'film_id'      => (int) ( isset( $data['film_id'] ) ? $data['film_id'] : 0 ),
 			'amount'       => (int) ( isset( $data['amount'] ) ? $data['amount'] : 0 ),
 			'area'         => (float) ( isset( $data['area'] ) ? $data['area'] : 0 ),
 			'brand'        => sanitize_text_field( isset( $data['brand'] ) ? $data['brand'] : '' ),

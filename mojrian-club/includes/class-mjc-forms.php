@@ -299,21 +299,93 @@ class MJC_Forms {
 		if ( ! mjc_is_active_member() ) {
 			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند پروژه ثبت کنند.' );
 		}
-		$images = mjc_uploaded_ids( 'images' );
-		$data   = array(
-			'title'        => isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '',
-			'project_type' => isset( $_POST['project_type'] ) ? sanitize_key( $_POST['project_type'] ) : 'other',
-			'province'     => isset( $_POST['province'] ) ? sanitize_text_field( wp_unslash( $_POST['province'] ) ) : '',
-			'city'         => isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '',
-			'units'        => isset( $_POST['units'] ) ? (int) $_POST['units'] : 0,
-			'amount'       => isset( $_POST['amount'] ) ? (int) mjc_to_en_digits( str_replace( array( ',', '،' ), '', wp_unslash( $_POST['amount'] ) ) ) : 0, // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-			'area'         => isset( $_POST['area'] ) ? (float) mjc_to_en_digits( wp_unslash( $_POST['area'] ) ) : 0, // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-			'brand'        => isset( $_POST['brand'] ) ? sanitize_text_field( wp_unslash( $_POST['brand'] ) ) : '',
-			'start_date'   => isset( $_POST['start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['start_date'] ) ) : '',
-			'description'  => isset( $_POST['description'] ) ? wp_kses_post( wp_unslash( $_POST['description'] ) ) : '',
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		$ptype  = isset( $_POST['project_type'] ) ? sanitize_key( wp_unslash( $_POST['project_type'] ) ) : '';
+		$floors = isset( $_POST['floors'] ) ? (int) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['floors'] ) ) ) : 0;
+		$units  = isset( $_POST['units'] ) ? (int) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['units'] ) ) ) : 0;
+		$area   = isset( $_POST['area'] ) ? (float) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['area'] ) ) ) : 0;
+		$amount = isset( $_POST['amount'] ) ? (int) mjc_to_en_digits( str_replace( array( ',', '،' ), '', (string) wp_unslash( $_POST['amount'] ) ) ) : 0;
+		$accept = ! empty( $_POST['accept_rules'] );
+		// phpcs:enable
+
+		$errors = array();
+		if ( ! array_key_exists( $ptype, MJC_Projects::TYPES ) ) {
+			$errors[] = 'نوع کاربری پروژه را انتخاب کنید.';
+		}
+		if ( $floors < 1 ) {
+			$errors[] = 'تعداد طبقات پروژه را وارد کنید.';
+		}
+		if ( $units < 1 ) {
+			$errors[] = 'تعداد واحد پروژه را وارد کنید.';
+		}
+		if ( $area <= 0 ) {
+			$errors[] = 'متراژ کل مساحت پروژه را وارد کنید.';
+		}
+		if ( $amount <= 0 ) {
+			$errors[] = 'مبلغ پروژه را وارد کنید.';
+		}
+		if ( ! $accept ) {
+			$errors[] = 'تأیید مقررات الزامی است.';
+		}
+
+		// هر ۶ تصویر ضروری است (مطابق ماکت).
+		$provided = 0;
+		if ( isset( $_FILES['images']['name'] ) && is_array( $_FILES['images']['name'] ) ) {
+			// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			foreach ( (array) wp_unslash( $_FILES['images']['name'] ) as $i => $raw_name ) {
+				$name = (string) $raw_name;
+				if ( '' === trim( $name ) ) {
+					continue;
+				}
+				$provided++;
+				$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+				if ( ! in_array( $ext, array( 'jpg', 'jpeg', 'png', 'bmp' ), true ) ) {
+					$errors[] = 'فقط فایل‌های jpg, jpeg, png, bmp برای تصاویر مجاز است.';
+					break;
+				}
+				if ( isset( $_FILES['images']['size'][ $i ] ) && (int) $_FILES['images']['size'][ $i ] > 20 * MB_IN_BYTES ) {
+					$errors[] = 'حجم هر تصویر باید حداکثر ۲۰ مگابایت باشد.';
+					break;
+				}
+			}
+			// phpcs:enable
+		}
+		if ( $provided < 6 ) {
+			$errors[] = 'هر ۶ تصویر (عکس ۱ تا عکس ۶) ضروری است.';
+		}
+
+		// فیلم اختیاری.
+		$has_film = ! empty( $_FILES['film']['name'] );
+		if ( $has_film ) {
+			// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$fext = strtolower( pathinfo( (string) wp_unslash( $_FILES['film']['name'] ), PATHINFO_EXTENSION ) );
+			// phpcs:enable
+			if ( ! in_array( $fext, array( 'mp4', 'mkv', 'mov', 'avi' ), true ) ) {
+				$errors[] = 'فقط فایل‌های mp4, mkv برای فیلم مجاز است.';
+				$has_film = false;
+			}
+			if ( (int) $_FILES['film']['size'] > 50 * MB_IN_BYTES ) {
+				$errors[] = 'حجم فیلم باید حداکثر ۵۰ مگابایت باشد.';
+				$has_film = false;
+			}
+		}
+		if ( $errors ) {
+			return new WP_Error( 'fields', implode( ' ', $errors ) );
+		}
+
+		$images  = mjc_uploaded_ids( 'images' );
+		$film_ids = $has_film ? mjc_uploaded_ids( 'film' ) : array();
+
+		$result = MJC_Projects::create( $user_id, array(
+			'title'        => 'پروژه ' . MJC_Projects::type_label( $ptype ) . ' — ' . mjc_date( current_time( 'mysql' ), false ),
+			'project_type' => $ptype,
+			'floors'       => $floors,
+			'units'        => $units,
+			'area'         => $area,
+			'amount'       => $amount,
 			'images'       => $images,
-		);
-		$result = MJC_Projects::create( $user_id, $data );
+			'film_id'      => $film_ids ? (int) $film_ids[0] : 0,
+		) );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
