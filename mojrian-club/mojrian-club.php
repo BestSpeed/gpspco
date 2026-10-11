@@ -3,7 +3,7 @@
  * Plugin Name:       باشگاه مجریان | Mojrian Club
  * Plugin URI:        https://github.com/BestSpeed/gpspco
  * Description:       افزونه جامع باشگاه مجریان؛ عضویت و تأیید مجریان، ثبت پروژه، موتور امتیاز (گیتا)، پایه فنی و استعلام، دوره‌های آموزشی، بانک دانش، فروشگاه امتیاز، نظرسنجی، کمپین و قرعه‌کشی، کیف پول، کارت عضویت، راهنمای باشگاه و پنل مدیریت کامل — فارسی و راست‌به‌چپ.
- * Version: 1.6.1
+ * Version: 1.6.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            گروه صنایع گیتی پسند — تیم توسعه باشگاه مجریان
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MJC_VERSION', '1.6.1' );
+define( 'MJC_VERSION', '1.6.2' );
 define( 'MJC_PLUGIN_FILE', __FILE__ );
 define( 'MJC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MJC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -28,6 +28,7 @@ define( 'MJC_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
  * بارگذاری فایل‌ها
  */
 require_once MJC_PLUGIN_DIR . 'includes/helpers.php';
+require_once MJC_PLUGIN_DIR . 'includes/class-mjc-validator.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-jalali.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-db.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-roles.php';

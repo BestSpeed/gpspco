@@ -42,7 +42,14 @@ class MJC_Shortcodes {
 			'mojrian_contact'       => 'render_contact',
 		);
 		foreach ( $map as $tag => $method ) {
-			add_shortcode( $tag, array( __CLASS__, $method ) );
+			add_shortcode( $tag, function ( $atts = array() ) use ( $tag, $method ) {
+				try {
+					return (string) call_user_func( array( __CLASS__, $method ), $atts );
+				} catch ( Throwable $e ) {
+					error_log( '[mojrian-club] shortcode ' . $tag . ': ' . $e->getMessage() );
+					return '<div class="mjc-wrap"><div class="mjc-card"><div class="mjc-empty">خطا در نمایش این بخش. جزئیات در error_log سرور ثبت شد.</div></div></div>';
+				}
+			} );
 		}
 	}
 
@@ -341,6 +348,32 @@ class MJC_Shortcodes {
 		echo '<li><strong>خروج از حساب کاربری :</strong> با استفاده از گزینه خروج، از حساب کاربری خود خارج شوید.</li>';
 		echo '</ul>';
 		echo '</div></div>';
+
+		// «پیام مدیر» (آخرین اعلان همگانی) + اعلان‌ها — مطابق خواسته‌ی داشبورد کاربر.
+		global $wpdb;
+		$bcast = mjc_latest_broadcast();
+		list( $notifications ) = MJC_Notify::list_for_user( get_current_user_id(), 1, 10 );
+		echo '<div class="mjc-grid mjc-grid-2">';
+		echo '<div class="mjc-card"><h3>پیام مدیر</h3><div class="mjc-mgr-msg">';
+		if ( $bcast ) {
+			echo wp_kses_post( wpautop( $bcast->message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<p class="mjc-text-sm mjc-mgr-msg-date">ارسال: ' . esc_html( mjc_date( $bcast->created_at, false ) ) . '</p>';
+		} else {
+			echo '<p class="mjc-empty">پیامی ثبت نشده است.</p>';
+		}
+		echo '</div></div>';
+		echo '<div class="mjc-card"><h3>اعلان‌ها</h3>';
+		if ( $notifications ) {
+			echo '<ul class="mjc-notif-list">';
+			foreach ( $notifications as $n ) {
+				echo '<li' . ( $n->is_read ? '' : ' class="mjc-unread"' ) . '><strong>' . esc_html( $n->title ) . '</strong><span class="mjc-text-sm">' . esc_html( mjc_date( $n->created_at, false ) ) . '</span></li>';
+			}
+			echo '</ul>';
+		} else {
+			echo '<p class="mjc-empty">اعلانی ندارید.</p>';
+		}
+		echo '</div></div>';
+
 		return ob_get_clean();
 	}
 

@@ -71,6 +71,25 @@ class MJC_Members {
 	}
 
 	/**
+	 * ساخت ردیف عضو برای کاربر (در صورت نبود) — الگوی create.
+	 *
+	 * @param int $user_id شناسه کاربر وردپرس.
+	 * @return object|null ردیف عضو.
+	 */
+	public static function create( $user_id ) {
+		$user_id = (int) $user_id;
+		if ( ! $user_id ) {
+			return null;
+		}
+		$existing = self::get_by_user( $user_id );
+		if ( $existing ) {
+			return $existing;
+		}
+		self::upsert( $user_id, array( 'referral_code' => self::generate_referral_code() ) );
+		return self::get_by_user( $user_id );
+	}
+
+	/**
 	 * ساخت کد معرف یکتا.
 	 *
 	 * @return string
