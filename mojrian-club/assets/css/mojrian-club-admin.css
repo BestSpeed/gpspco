@@ -1,0 +1,48 @@
+/*
+ * استایل پنل مدیریت باشگاه مجریان
+ */
+
+.mjc-admin-wrap { direction: rtl; }
+.mjc-admin-wrap .mjc-kpi-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 14px;
+	margin: 18px 0;
+}
+.mjc-admin-wrap .mjc-kpi {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-right: 4px solid #0e7490;
+	border-radius: 10px;
+	padding: 16px;
+	text-align: center;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+}
+.mjc-admin-wrap .mjc-kpi-num { display: block; font-size: 1.55rem; font-weight: 800; color: #0e7490; }
+.mjc-admin-wrap .mjc-kpi-label { display: block; color: #646970; font-size: .82rem; margin: 4px 0 8px; }
+.mjc-admin-wrap .mjc-kpi a { text-decoration: none; font-size: .78rem; }
+
+.mjc-admin-cols {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 18px;
+	align-items: start;
+}
+.mjc-admin-box {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+	padding: 16px 18px;
+	margin-bottom: 18px;
+}
+.mjc-admin-box h2 { margin-top: 4px; }
+.mjc-admin-wrap .widefat td, .mjc-admin-wrap .widefat th { vertical-align: top; }
+.mjc-admin-wrap details summary.button { cursor: pointer; }
+.mjc-admin-wrap details[open] { background: #f6f7f7; padding: 10px; border-radius: 8px; }
+.mjc-filters { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; align-items: center; }
+.mjc-filters input[type="text"] { min-width: 240px; }
+
+@media (max-width: 1100px) {
+	.mjc-admin-wrap .mjc-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+	.mjc-admin-cols { grid-template-columns: 1fr; }
+}

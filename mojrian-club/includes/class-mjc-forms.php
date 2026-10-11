@@ -1,0 +1,401 @@
+<?php
+/**
+ * پردازش فرم‌های سمت کاربر (الگوی PRG + Nonce).
+ *
+ * @package mojrian-club
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * کلاس فرم‌ها.
+ */
+class MJC_Forms {
+
+	/**
+	 * هوک‌ها.
+	 */
+	public static function hooks() {
+		add_action( 'template_redirect', array( __CLASS__, 'handle' ) );
+	}
+
+	/**
+	 * مسیریابی فرم‌ها.
+	 */
+	public static function handle() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- در هر متد بررسی می‌شود.
+		if ( empty( $_POST['mjc_form'] ) ) {
+			return;
+		}
+		$form = sanitize_key( $_POST['mjc_form'] );
+		$back = wp_get_referer();
+		if ( ! $back ) {
+			$back = home_url( add_query_arg( array() ) );
+		}
+
+		$method = 'form_' . str_replace( '-', '_', $form );
+		if ( ! method_exists( __CLASS__, $method ) ) {
+			return;
+		}
+
+		$result = self::$method();
+		if ( is_wp_error( $result ) ) {
+			$back = mjc_notice_url( $back, 'error', $result->get_error_message() );
+		} elseif ( is_array( $result ) && isset( $result['redirect'] ) ) {
+			$back = $result['redirect'];
+		} else {
+			$code = is_string( $result ) ? $result : 'ok';
+			$back = mjc_notice_url( $back, $code );
+		}
+		wp_safe_redirect( $back );
+		exit;
+		// phpcs:enable
+	}
+
+	/**
+	 * بررسی nonce یک فرم.
+	 *
+	 * @param string $name نام اکشن.
+	 */
+	private static function verify( $name ) {
+		if ( empty( $_POST['mjc_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['mjc_nonce'] ), $name ) ) {
+			wp_die( esc_html__( 'خطای امنیتی؛ لطفاً دوباره تلاش کنید.', 'mojrian-club' ) );
+		}
+	}
+
+	/**
+	 * فرم: ثبت‌نام.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_register() {
+		self::verify( 'mjc_register' );
+		if ( is_user_logged_in() ) {
+			return 'ok';
+		}
+		if ( empty( $_POST['accept_rules'] ) ) {
+			return new WP_Error( 'fields', 'پذیرش قوانین و حریم خصوصی الزامی است.' );
+		}
+		// راستی‌آزمایی OTP (در صورت فعال بودن).
+		$mobile = MJC_SMS::normalize_mobile( isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : '' ); // phpcs:ignore
+		$otp    = isset( $_POST['otp'] ) ? sanitize_text_field( wp_unslash( $_POST['otp'] ) ) : '';
+		if ( $mobile && $otp && ! MJC_SMS::verify_otp( $mobile, $otp, 'register' ) ) {
+			return new WP_Error( 'otp', 'کد تأیید موبایل نادرست یا منقضی شده است.' );
+		}
+
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$data = array(
+			'full_name'        => isset( $_POST['full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['full_name'] ) ) : '',
+			'mobile'           => $mobile,
+			'national_code'    => isset( $_POST['national_code'] ) ? sanitize_text_field( wp_unslash( $_POST['national_code'] ) ) : '',
+			'province'         => isset( $_POST['province'] ) ? sanitize_text_field( wp_unslash( $_POST['province'] ) ) : '',
+			'city'             => isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '',
+			'job_type'         => isset( $_POST['job_type'] ) ? sanitize_text_field( wp_unslash( $_POST['job_type'] ) ) : '',
+			'experience'       => isset( $_POST['experience'] ) ? (int) $_POST['experience'] : 0,
+			'workshop_address' => isset( $_POST['workshop_address'] ) ? sanitize_text_field( wp_unslash( $_POST['workshop_address'] ) ) : '',
+			'password'         => isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : '',
+			'referral_code'    => isset( $_POST['referral_code'] ) ? sanitize_text_field( wp_unslash( $_POST['referral_code'] ) ) : '',
+		);
+		// phpcs:enable
+
+		$result = MJC_Auth::register( $data );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$member = MJC_Members::get_by_user( $result );
+		if ( $member && 'approved' === $member->status ) {
+			return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'registered' ) );
+		}
+		return 'registered';
+	}
+
+	/**
+	 * فرم: ورود با رمز.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_login() {
+		self::verify( 'mjc_login' );
+		$username = isset( $_POST['username'] ) ? sanitize_text_field( wp_unslash( $_POST['username'] ) ) : '';
+		$password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : '';
+		$result   = MJC_Auth::login( $username, $password );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$user   = wp_get_current_user();
+		$member = MJC_Members::get_by_user( $user->ID );
+		if ( user_can( $user, 'mjc_manage_club' ) ) {
+			return array( 'redirect' => admin_url( 'admin.php?page=mjc-dashboard' ) );
+		}
+		if ( $member && 'approved' === $member->status ) {
+			return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'ok' ) );
+		}
+		return 'not_approved';
+	}
+
+	/**
+	 * فرم: ورود با OTP.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_login_otp() {
+		self::verify( 'mjc_login' );
+		$mobile  = isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : ''; // phpcs:ignore
+		$code    = isset( $_POST['otp'] ) ? sanitize_text_field( wp_unslash( $_POST['otp'] ) ) : '';
+		$result  = MJC_Auth::login_with_otp( $mobile, $code );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$user   = wp_get_current_user();
+		$member = MJC_Members::get_by_user( $user->ID );
+		if ( $member && 'approved' === $member->status ) {
+			return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'ok' ) );
+		}
+		return 'not_approved';
+	}
+
+	/**
+	 * فرم: بازیابی رمز.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_password_reset() {
+		self::verify( 'mjc_reset' );
+		$mobile = isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : ''; // phpcs:ignore
+		$code   = isset( $_POST['otp'] ) ? sanitize_text_field( wp_unslash( $_POST['otp'] ) ) : '';
+		$pass1  = isset( $_POST['password1'] ) ? (string) wp_unslash( $_POST['password1'] ) : '';
+		$pass2  = isset( $_POST['password2'] ) ? (string) wp_unslash( $_POST['password2'] ) : '';
+		if ( $pass1 !== $pass2 ) {
+			return new WP_Error( 'fields', 'تکرار رمز عبور مطابقت ندارد.' );
+		}
+		$result = MJC_Auth::reset_password( $mobile, $code, $pass1 );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return array( 'redirect' => mjc_notice_url( mjc_page_url( 'login' ), 'ok', 'رمز عبور با موفقیت تغییر کرد. اکنون وارد شوید.' ) );
+	}
+
+	/**
+	 * فرم: ارسال OTP (ثبت‌نام/ورود/بازیابی).
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_otp_send() {
+		self::verify( 'mjc_otp' );
+		$mobile  = isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : ''; // phpcs:ignore
+		$purpose = isset( $_POST['purpose'] ) ? sanitize_key( $_POST['purpose'] ) : 'register';
+		if ( ! in_array( $purpose, array( 'register', 'login', 'reset' ), true ) ) {
+			$purpose = 'register';
+		}
+		$result = MJC_SMS::send_otp( $mobile, $purpose );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return 'otp_sent';
+	}
+
+	/**
+	 * فرم: پروفایل.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_profile() {
+		self::verify( 'mjc_profile' );
+		$user_id = get_current_user_id();
+		if ( ! $user_id ) {
+			return new WP_Error( 'access', 'ابتدا وارد شوید.' );
+		}
+		$data = array(
+			'full_name'        => isset( $_POST['full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['full_name'] ) ) : '',
+			'national_code'    => isset( $_POST['national_code'] ) ? mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['national_code'] ) ) ) : '',
+			'province'         => isset( $_POST['province'] ) ? sanitize_text_field( wp_unslash( $_POST['province'] ) ) : '',
+			'city'             => isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '',
+			'job_type'         => isset( $_POST['job_type'] ) ? sanitize_text_field( wp_unslash( $_POST['job_type'] ) ) : '',
+			'experience'       => isset( $_POST['experience'] ) ? (int) $_POST['experience'] : 0,
+			'workshop_address' => isset( $_POST['workshop_address'] ) ? sanitize_text_field( wp_unslash( $_POST['workshop_address'] ) ) : '',
+		);
+		if ( '' === $data['full_name'] ) {
+			return new WP_Error( 'fields', 'نام و نام خانوادگی الزامی است.' );
+		}
+		MJC_Members::upsert( $user_id, $data );
+		if ( ! empty( $data['full_name'] ) ) {
+			wp_update_user( array( 'ID' => $user_id, 'display_name' => $data['full_name'], 'first_name' => $data['full_name'] ) );
+		}
+		do_action( 'mjc_profile_updated', $user_id );
+		return 'ok';
+	}
+
+	/**
+	 * فرم: ثبت پروژه.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_project() {
+		self::verify( 'mjc_project' );
+		$user_id = get_current_user_id();
+		if ( ! mjc_is_active_member() ) {
+			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند پروژه ثبت کنند.' );
+		}
+		$images = mjc_uploaded_ids( 'images' );
+		$data   = array(
+			'title'        => isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '',
+			'project_type' => isset( $_POST['project_type'] ) ? sanitize_key( $_POST['project_type'] ) : 'other',
+			'province'     => isset( $_POST['province'] ) ? sanitize_text_field( wp_unslash( $_POST['province'] ) ) : '',
+			'city'         => isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '',
+			'units'        => isset( $_POST['units'] ) ? (int) $_POST['units'] : 0,
+			'brand'        => isset( $_POST['brand'] ) ? sanitize_text_field( wp_unslash( $_POST['brand'] ) ) : '',
+			'start_date'   => isset( $_POST['start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['start_date'] ) ) : '',
+			'description'  => isset( $_POST['description'] ) ? wp_kses_post( wp_unslash( $_POST['description'] ) ) : '',
+			'images'       => $images,
+		);
+		$result = MJC_Projects::create( $user_id, $data );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return 'pending';
+	}
+
+	/**
+	 * فرم: درخواست پایه فنی.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_grade_request() {
+		self::verify( 'mjc_grade' );
+		if ( ! mjc_is_active_member() ) {
+			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند درخواست دهند.' );
+		}
+		$result = MJC_Grades::request( get_current_user_id(), array(
+			'requested_level' => isset( $_POST['requested_level'] ) ? sanitize_key( wp_unslash( $_POST['requested_level'] ) ) : '',
+			'notes'           => isset( $_POST['notes'] ) ? wp_kses_post( wp_unslash( $_POST['notes'] ) ) : '',
+		) );
+		return is_wp_error( $result ) ? $result : 'pending';
+	}
+
+	/**
+	 * فرم: درخواست جایزه.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_reward_request() {
+		self::verify( 'mjc_reward' );
+		if ( ! mjc_is_active_member() ) {
+			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند درخواست دهند.' );
+		}
+		$result = MJC_Rewards::request(
+			get_current_user_id(),
+			isset( $_POST['reward_id'] ) ? (int) $_POST['reward_id'] : 0,
+			isset( $_POST['shipping_address'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_address'] ) ) : ''
+		);
+		return is_wp_error( $result ) ? $result : 'pending';
+	}
+
+	/**
+	 * فرم: ثبت‌نام دوره.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_course_enroll() {
+		self::verify( 'mjc_course' );
+		if ( ! mjc_is_active_member() ) {
+			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند ثبت‌نام کنند.' );
+		}
+		$result = MJC_Courses::enroll( get_current_user_id(), isset( $_POST['course_id'] ) ? (int) $_POST['course_id'] : 0 );
+		return is_wp_error( $result ) ? $result : 'ok';
+	}
+
+	/**
+	 * فرم: پاسخ نظرسنجی.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_survey() {
+		self::verify( 'mjc_survey' );
+		if ( ! mjc_is_active_member() ) {
+			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند شرکت کنند.' );
+		}
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		$answers = array();
+		if ( isset( $_POST['answers'] ) && is_array( $_POST['answers'] ) ) {
+			$answers = wp_unslash( $_POST['answers'] );
+		}
+		// phpcs:enable
+		$result = MJC_Surveys::submit( get_current_user_id(), isset( $_POST['survey_id'] ) ? (int) $_POST['survey_id'] : 0, $answers );
+		return is_wp_error( $result ) ? $result : 'ok';
+	}
+
+	/**
+	 * فرم: شرکت در کمپین.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_campaign_join() {
+		self::verify( 'mjc_campaign' );
+		if ( ! mjc_is_active_member() ) {
+			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند شرکت کنند.' );
+		}
+		$result = MJC_Campaigns::join( get_current_user_id(), isset( $_POST['campaign_id'] ) ? (int) $_POST['campaign_id'] : 0 );
+		return is_wp_error( $result ) ? $result : 'ok';
+	}
+
+	/**
+	 * فرم: درخواست برداشت کیف پول.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_wallet_withdraw() {
+		self::verify( 'mjc_wallet' );
+		if ( ! mjc_is_active_member() ) {
+			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند درخواست دهند.' );
+		}
+		$amount = isset( $_POST['amount'] ) ? (int) mjc_to_en_digits( str_replace( array( ',', '،' ), '', wp_unslash( $_POST['amount'] ) ) ) : 0; // phpcs:ignore
+		$result = MJC_Wallet::withdraw_request( get_current_user_id(), $amount );
+		return is_wp_error( $result ) ? $result : 'pending';
+	}
+
+	/**
+	 * فرم: تیکت/تماس.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_ticket() {
+		self::verify( 'mjc_ticket' );
+		$attachments = mjc_uploaded_ids( 'attachment' );
+		$result      = MJC_Tickets::create(
+			get_current_user_id(),
+			isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '',
+			isset( $_POST['message'] ) ? wp_kses_post( wp_unslash( $_POST['message'] ) ) : '',
+			$attachments ? $attachments[0] : 0
+		);
+		return is_wp_error( $result ) ? $result : 'ok';
+	}
+
+	/**
+	 * فرم: استعلام فنی.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function form_inquiry() {
+		self::verify( 'mjc_inquiry' );
+		$query  = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
+		$result = MJC_Grades::inquiry( $query );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		set_transient( 'mjc_inquiry_' . get_current_user_id() . '_' . md5( $query ), $result, 5 * MINUTE_IN_SECONDS );
+		return array( 'redirect' => add_query_arg( 'mjc_inquiry', rawurlencode( $query ), mjc_page_url( 'inquiry' ) ) );
+	}
+
+	/**
+	 * فرم: خواندن اعلان‌ها.
+	 *
+	 * @return string
+	 */
+	public static function form_notifications_read() {
+		self::verify( 'mjc_notify' );
+		MJC_Notify::mark_all_read( get_current_user_id() );
+		return 'ok';
+	}
+}
