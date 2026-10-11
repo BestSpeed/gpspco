@@ -517,3 +517,34 @@
 }
 .mjc-mf-actions .mjc-check input { width: auto; }
 .mjc-mf-actions .mjc-btn { border-radius: 4px; padding: 9px 26px; }
+
+/* ======== داشبورد و پروژه‌ها (نسخه ۱٫۴) ======== */
+.mjc-dash-banner { margin-bottom: 18px; border-radius: 16px; overflow: hidden; }
+.mjc-dash-banner img { display: block; width: 100%; height: auto; }
+.mjc-camp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.mjc-camp-list li a {
+	display: block; background: #fff; border: 1px solid var(--mjc-border);
+	border-radius: 12px; padding: 12px 16px; color: var(--mjc-text);
+	text-decoration: none; font-weight: 600; transition: .15s;
+}
+.mjc-camp-list li a:hover { border-color: var(--mjc-primary); color: var(--mjc-primary-dark); text-decoration: none; }
+.mjc-notif-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mjc-notif-list li {
+	display: flex; flex-direction: column; gap: 2px;
+	background: #fff; border: 1px solid var(--mjc-border); border-radius: 10px; padding: 10px 14px;
+}
+.mjc-notif-list li.mjc-unread { border-right: 4px solid var(--mjc-primary); }
+.mjc-mgr-msg { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 14px 18px; line-height: 2.1; }
+.mjc-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.mjc-list-head h2 { margin: 0; }
+.mjc-btn-green {
+	display: inline-flex; align-items: center; gap: 8px;
+	background: #16a34a; color: #fff !important; border: 1px solid #15803d;
+	border-radius: 10px; padding: 10px 18px; font-weight: 700; text-decoration: none;
+}
+.mjc-btn-green:hover { background: #15803d; color: #fff !important; text-decoration: none; }
+.mjc-plus {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 22px; height: 22px; border-radius: 50%;
+	background: rgba(255, 255, 255, .25); font-size: 1.15rem; line-height: 1;
+}

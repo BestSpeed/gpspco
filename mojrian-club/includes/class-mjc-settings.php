@@ -54,6 +54,8 @@ class MJC_Settings {
 			'points_per_meter'    => 2,
 			'points_per_10m'      => 10,
 			'project_points_max'  => 0,
+			'dashboard_banner_id' => 0,
+			'manager_message'     => '',
 			'points_rules'        => self::default_rules(),
 			'pages'               => array(),
 		);
@@ -105,6 +107,18 @@ class MJC_Settings {
 			return;
 		}
 
+		// بنر داشبورد اعضا (اختیاری).
+		if ( ! empty( $_FILES['dashboard_banner']['name'] ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+			$att_id = media_handle_upload( 'dashboard_banner', 0 ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			if ( ! is_wp_error( $att_id ) ) {
+				$opts = array_merge( (array) get_option( 'mjc_settings', array() ), array( 'dashboard_banner_id' => (int) $att_id ) );
+				update_option( 'mjc_settings', $opts );
+			}
+		}
+
 		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$raw_rules = isset( $_POST['rules'] ) ? wp_unslash( $_POST['rules'] ) : array();
 		// phpcs:enable
@@ -133,6 +147,7 @@ class MJC_Settings {
 			'points_per_meter'      => isset( $_POST['points_per_meter'] ) ? max( 0, (float) $_POST['points_per_meter'] ) : 2,
 			'points_per_10m'        => isset( $_POST['points_per_10m'] ) ? max( 0, (float) $_POST['points_per_10m'] ) : 10,
 			'project_points_max'    => isset( $_POST['project_points_max'] ) ? max( 0, (int) $_POST['project_points_max'] ) : 0,
+			'manager_message'       => isset( $_POST['manager_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['manager_message'] ) ) : '',
 			'points_rules'          => $rules,
 		);
 		$color = $data['primary_color'];

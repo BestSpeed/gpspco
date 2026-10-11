@@ -787,7 +787,7 @@ class MJC_Admin {
 		self::page_header( 'تنظیمات باشگاه' );
 		$s = array_merge( MJC_Settings::defaults(), (array) get_option( 'mjc_settings', array() ) );
 
-		echo '<div class="mjc-admin-cols"><div class="mjc-admin-box"><h2>تنظیمات عمومی</h2><form method="post">';
+		echo '<div class="mjc-admin-cols"><div class="mjc-admin-box"><h2>تنظیمات عمومی</h2><form method="post" enctype="multipart/form-data">';
 		wp_nonce_field( 'mjc_save_settings', 'mjc_settings_nonce' );
 		echo '<table class="form-table"><tr><th>عنوان باشگاه</th><td><input type="text" name="club_title" value="' . esc_attr( $s['club_title'] ) . '" /></td></tr>';
 		echo '<tr><th>نام واحد امتیاز</th><td><input type="text" name="points_label" value="' . esc_attr( $s['points_label'] ) . '" /></td></tr>';
@@ -812,6 +812,16 @@ class MJC_Admin {
 		echo '<tr><th>طول کد OTP</th><td><input type="number" name="otp_length" value="' . esc_attr( $s['otp_length'] ) . '" /></td></tr>';
 		echo '<tr><th>اعتبار کد (ثانیه)</th><td><input type="number" name="otp_ttl" value="' . esc_attr( $s['otp_ttl'] ) . '" /></td></tr>';
 		echo '<tr><th>حداکثر درخواست در ساعت</th><td><input type="number" name="otp_max_per_hour" value="' . esc_attr( $s['otp_max_per_hour'] ) . '" /></td></tr></table>';
+		echo '<h2>داشبورد اعضا</h2><table class="form-table">';
+		echo '<tr><th>بنر داشبورد</th><td><input type="file" name="dashboard_banner" accept="image/*" />';
+		$banner_id = (int) mjc_get_setting( 'dashboard_banner_id', 0 );
+		if ( $banner_id && wp_get_attachment_image_url( $banner_id, 'medium' ) ) {
+			echo '<br />' . wp_get_attachment_image( $banner_id, 'medium' ) . '<br /><span class="description">برای تعویض بنر، فایل جدید انتخاب کنید.</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		} else {
+			echo '<br /><span class="description">تصویر بنر بالای داشبورد اعضا نمایش داده می‌شود.</span>';
+		}
+		echo '</td></tr>';
+		echo '<tr><th>پیام مدیر (نمایش در داشبورد اعضا)</th><td><textarea name="manager_message" rows="4" class="large-text">' . esc_textarea( mjc_get_setting( 'manager_message', '' ) ) . '</textarea></td></tr></table>';
 		echo '<p><button class="button-primary">ذخیره تنظیمات</button></p></form></div>';
 
 		echo '<div class="mjc-admin-box"><h2>گزارش پیامک‌ها</h2><table class="widefat striped"><thead><tr><th>شماره</th><th>متن</th><th>وضعیت</th><th>تاریخ</th></tr></thead><tbody>';

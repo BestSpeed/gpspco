@@ -45,7 +45,11 @@ class MJC_Rewards {
 	 * جوایز پیش‌فرض فروشگاه (هنگام فعال‌سازی).
 	 */
 	public static function seed_default_rewards() {
-		if ( get_option( 'mjc_rewards_seeded' ) ) {
+		// اگر هیچ جایزه‌ای وجود نداشته باشد (حتی اگر قبلاً seed شده باشد) دوباره ساخته می‌شود.
+		global $wpdb;
+		$exists = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'mjc_reward' AND post_status = 'publish'" );
+		if ( $exists > 0 ) {
+			update_option( 'mjc_rewards_seeded', 1 );
 			return;
 		}
 		// کاتالوگ پیش‌فرض مطابق ماکت «تبدیل امتیازات به جوایز» (ابزارآلات و لوله).

@@ -27,7 +27,15 @@ class MJC_Referrals {
 	 */
 	public static function code( $user_id ) {
 		$member = MJC_Members::get_by_user( $user_id );
-		return $member ? (string) $member->referral_code : '';
+		if ( ! $member ) {
+			return '';
+		}
+		$code = (string) $member->referral_code;
+		if ( '' === $code ) {
+			$code = MJC_Members::generate_referral_code();
+			MJC_DB::update( 'members', array( 'referral_code' => $code ), array( 'user_id' => (int) $user_id ) );
+		}
+		return $code;
 	}
 
 	/**

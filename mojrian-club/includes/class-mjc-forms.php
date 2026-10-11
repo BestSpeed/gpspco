@@ -34,6 +34,8 @@ class MJC_Forms {
 		if ( ! $back ) {
 			$back = home_url( add_query_arg( array() ) );
 		}
+		// پس از ثبت، همیشه به نمای لیست برگرد (نه فرم).
+		$back = remove_query_arg( 'mjc_new', $back );
 
 		$method = 'form_' . str_replace( '-', '_', $form );
 		if ( ! method_exists( __CLASS__, $method ) ) {
