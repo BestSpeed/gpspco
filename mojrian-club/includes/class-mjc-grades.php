@@ -134,7 +134,7 @@ class MJC_Grades {
 	 */
 	public static function inquiry( $query ) {
 		$query = mjc_to_en_digits( trim( (string) $query ) );
-		$mobile = MJC_SMS::normalize_mobile( $query );
+		$mobile = mjc_normalize_mobile( $query );
 		global $wpdb;
 		if ( $mobile ) {
 			$member = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . mjc_table( 'members' ) . ' WHERE mobile = %s', $mobile ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared

@@ -82,14 +82,34 @@ class MJC_Roles {
 	 * حذف نقش‌ها هنگام حذف کامل افزونه.
 	 */
 	public static function uninstall() {
+		// بازگرداندن کاربرانِ دارای نقش باشگاه به نقش پیش‌فرض.
+		$roles = array( self::MEMBER, self::MODER, self::MANAGER );
+		$users = get_users( array( 'role__in' => $roles, 'fields' => 'ID' ) );
+		foreach ( (array) $users as $uid ) {
+			$user = get_userdata( (int) $uid );
+			if ( ! $user ) {
+				continue;
+			}
+			foreach ( $roles as $r ) {
+				$user->remove_role( $r );
+			}
+			if ( ! array_filter( (array) $user->roles ) ) {
+				$user->set_role( 'subscriber' );
+			}
+		}
+
+		// حذف همه‌ی دسترسی‌های mjc_ از نقش مدیر.
+		$admin = get_role( 'administrator' );
+		if ( $admin ) {
+			foreach ( array_keys( (array) $admin->capabilities ) as $cap ) {
+				if ( 0 === strpos( (string) $cap, 'mjc_' ) ) {
+					$admin->remove_cap( $cap );
+				}
+			}
+		}
+
 		remove_role( self::MEMBER );
 		remove_role( self::MODER );
 		remove_role( self::MANAGER );
-		$admin = get_role( 'administrator' );
-		if ( $admin ) {
-			foreach ( self::manager_caps() as $cap ) {
-				$admin->remove_cap( $cap );
-			}
-		}
 	}
 }

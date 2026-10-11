@@ -385,7 +385,7 @@ class MJC_Admin {
 		echo '<div class="mjc-admin-cols"><div class="mjc-admin-box"><h2>آخرین اعضا</h2><table class="widefat striped"><thead><tr><th>نام</th><th>موبایل</th><th>وضعیت</th><th>تاریخ</th></tr></thead><tbody>';
 		$latest = MJC_DB::results( 'SELECT * FROM ' . mjc_table( 'members' ) . ' ORDER BY id DESC LIMIT 8' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		foreach ( (array) $latest as $m ) {
-			echo '<tr><td><strong>' . esc_html( MJC_Members::display_name( $m ) ) . '</strong></td><td>' . esc_html( MJC_SMS::pretty_mobile( $m->mobile ) ) . '</td><td>' . esc_html( mjc_status_label( $m->status ) ) . '</td><td>' . esc_html( mjc_date( $m->created_at, false ) ) . '</td></tr>';
+			echo '<tr><td><strong>' . esc_html( MJC_Members::display_name( $m ) ) . '</strong></td><td>' . esc_html( mjc_pretty_mobile( $m->mobile ) ) . '</td><td>' . esc_html( mjc_status_label( $m->status ) ) . '</td><td>' . esc_html( mjc_date( $m->created_at, false ) ) . '</td></tr>';
 		}
 		echo '</tbody></table></div>';
 
@@ -469,7 +469,7 @@ class MJC_Admin {
 		$table->row_formatter = function ( $m ) {
 			return array(
 				'name'    => '<strong>' . esc_html( MJC_Members::display_name( $m ) ) . '</strong><br /><span class="description">' . esc_html( $m->national_code ) . '</span>',
-				'mobile'  => esc_html( MJC_SMS::pretty_mobile( $m->mobile ) ),
+				'mobile'  => esc_html( mjc_pretty_mobile( $m->mobile ) ),
 				'city'    => esc_html( trim( $m->province . ' / ' . $m->city, ' /' ) ),
 				'grade'   => $m->grade ? esc_html( MJC_Grades::level_label( $m->grade ) ) : '—',
 				'points'  => esc_html( mjc_num( number_format( (float) $m->points_balance ) ) ),
@@ -533,7 +533,7 @@ class MJC_Admin {
 			}
 			return array(
 				'title'   => '<strong>' . esc_html( $p->title ) . '</strong>' . ( $p->description ? '<br /><span class="description">' . esc_html( wp_trim_words( wp_strip_all_tags( $p->description ), 12 ) ) . '</span>' : '' ) . '<br />' . $gallery,
-				'owner'   => esc_html( ( $p->full_name ? $p->full_name : '—' ) . ' (' . MJC_SMS::pretty_mobile( $p->mobile ) . ')' ),
+				'owner'   => esc_html( ( $p->full_name ? $p->full_name : '—' ) . ' (' . mjc_pretty_mobile( $p->mobile ) . ')' ),
 				'type'    => esc_html( MJC_Projects::type_label( $p->project_type ) ),
 				'units'   => esc_html( mjc_num( $p->units ) ),
 				'amount'  => ( $p->amount > 0 ? esc_html( mjc_money( $p->amount ) ) . ' ریال' : '<em>—</em>' ) . '<br />' . ( $p->area > 0 ? esc_html( mjc_num( $p->area ) ) . ' متر' : '' ) . '<br /><span class="description">مبلغ پروژه در زمان تأیید توسط مدیر تعیین می‌شود</span>',
@@ -624,7 +624,7 @@ class MJC_Admin {
 		echo '<div class="mjc-admin-box"><h2>درخواست‌های ارزیابی</h2><table class="widefat striped"><thead><tr><th>عضو</th><th>سطح درخواستی</th><th>تاریخ</th><th>وضعیت</th><th>ثبت نتیجه</th></tr></thead><tbody>';
 		$requests = MJC_DB::results( 'SELECT g.*, m.full_name, m.mobile, m.user_id AS m_user FROM ' . mjc_table( 'grade_requests' ) . ' g LEFT JOIN ' . mjc_table( 'members' ) . ' m ON m.user_id = g.user_id ORDER BY g.id DESC LIMIT 30' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		foreach ( (array) $requests as $r ) {
-			echo '<tr><td><strong>' . esc_html( $r->full_name ? $r->full_name : '—' ) . '</strong><br /><span class="description">' . esc_html( MJC_SMS::pretty_mobile( $r->mobile ) ) . '</span></td>';
+			echo '<tr><td><strong>' . esc_html( $r->full_name ? $r->full_name : '—' ) . '</strong><br /><span class="description">' . esc_html( mjc_pretty_mobile( $r->mobile ) ) . '</span></td>';
 			echo '<td>' . esc_html( MJC_Grades::level_label( $r->requested_level ) ) . '</td>';
 			echo '<td>' . esc_html( mjc_date( $r->created_at, false ) ) . '</td>';
 			echo '<td>' . esc_html( mjc_status_label( $r->status ) ) . ( $r->final_level ? ' — ' . esc_html( MJC_Grades::level_label( $r->final_level ) ) : '' ) . '</td><td>';
@@ -718,7 +718,7 @@ class MJC_Admin {
 		$tickets = MJC_DB::results( 'SELECT t.*, m.full_name, m.mobile FROM ' . mjc_table( 'tickets' ) . ' t LEFT JOIN ' . mjc_table( 'members' ) . ' m ON m.user_id = t.user_id ORDER BY t.id DESC LIMIT 40' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		foreach ( (array) $tickets as $t ) {
 			echo '<tr><td><strong>' . esc_html( $t->subject ) . '</strong><br /><span class="description">' . esc_html( wp_trim_words( wp_strip_all_tags( $t->message ), 15 ) ) . '</span></td>';
-			echo '<td>' . esc_html( $t->full_name ? $t->full_name : 'مهمان' ) . '<br /><span class="description">' . esc_html( MJC_SMS::pretty_mobile( $t->mobile ) ) . '</span></td>';
+			echo '<td>' . esc_html( $t->full_name ? $t->full_name : 'مهمان' ) . '<br /><span class="description">' . esc_html( mjc_pretty_mobile( $t->mobile ) ) . '</span></td>';
 			echo '<td>' . esc_html( mjc_date( $t->created_at, false ) ) . '</td><td>' . esc_html( mjc_status_label( $t->status ) ) . '</td><td>';
 			echo '<details><summary class="button button-small">پاسخ</summary><form method="post" style="margin-top:8px">';
 			wp_nonce_field( 'mjc_ticket_reply', '_wpnonce' );
@@ -778,7 +778,7 @@ class MJC_Admin {
 	}
 
 	/**
-	 * تنظیمات + گزارش پیامک.
+	 * تنظیمات باشگاه.
 	 */
 	public static function page_settings() {
 		if ( ! current_user_can( 'mjc_manage_settings' ) ) {
@@ -805,13 +805,6 @@ class MJC_Admin {
 		echo '<tr><th>میزان امتیاز به ازای هر ۱۰ میلیون ریال (قیمت پروژه)</th><td><input type="number" step="0.5" name="points_per_10m" value="' . esc_attr( $s['points_per_10m'] ) . '" /></td></tr>';
 		echo '<tr><th>سقف امتیاز هر پروژه (۰ = بدون سقف)</th><td><input type="number" name="project_points_max" value="' . esc_attr( $s['project_points_max'] ) . '" /></td></tr></table>';
 
-		echo '<h2>پیامک</h2><table class="form-table">';
-		echo '<tr><th>درگاه</th><td><select name="sms_gateway"><option value="log" ' . selected( $s['sms_gateway'], 'log', false ) . '>حالت توسعه (ثبت در گزارش پیامک)</option><option value="kavenegar" ' . selected( $s['sms_gateway'], 'kavenegar', false ) . '>کاوه‌نگار</option></select></td></tr>';
-		echo '<tr><th>کلید API</th><td><input type="text" name="sms_api_key" value="' . esc_attr( $s['sms_api_key'] ) . '" style="width:300px" /></td></tr>';
-		echo '<tr><th>فرستنده</th><td><input type="text" name="sms_sender" value="' . esc_attr( $s['sms_sender'] ) . '" /></td></tr>';
-		echo '<tr><th>طول کد OTP</th><td><input type="number" name="otp_length" value="' . esc_attr( $s['otp_length'] ) . '" /></td></tr>';
-		echo '<tr><th>اعتبار کد (ثانیه)</th><td><input type="number" name="otp_ttl" value="' . esc_attr( $s['otp_ttl'] ) . '" /></td></tr>';
-		echo '<tr><th>حداکثر درخواست در ساعت</th><td><input type="number" name="otp_max_per_hour" value="' . esc_attr( $s['otp_max_per_hour'] ) . '" /></td></tr></table>';
 		echo '<h2>داشبورد اعضا</h2><table class="form-table">';
 		echo '<tr><th>بنر داشبورد</th><td><input type="file" name="dashboard_banner" accept="image/*" />';
 		$banner_id = (int) mjc_get_setting( 'dashboard_banner_id', 0 );
@@ -824,12 +817,7 @@ class MJC_Admin {
 		echo '<tr><th>پیام مدیر (نمایش در داشبورد اعضا)</th><td><textarea name="manager_message" rows="4" class="large-text">' . esc_textarea( mjc_get_setting( 'manager_message', '' ) ) . '</textarea></td></tr></table>';
 		echo '<p><button class="button-primary">ذخیره تنظیمات</button></p></form></div>';
 
-		echo '<div class="mjc-admin-box"><h2>گزارش پیامک‌ها</h2><table class="widefat striped"><thead><tr><th>شماره</th><th>متن</th><th>وضعیت</th><th>تاریخ</th></tr></thead><tbody>';
-		$logs = MJC_DB::results( 'SELECT * FROM ' . mjc_table( 'sms_log' ) . ' ORDER BY id DESC LIMIT 20' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		foreach ( (array) $logs as $log ) {
-			echo '<tr><td>' . esc_html( MJC_SMS::pretty_mobile( $log->mobile ) ) . '</td><td>' . esc_html( $log->message ) . '</td><td>' . esc_html( $log->status ) . '</td><td>' . esc_html( mjc_date( $log->created_at ) ) . '</td></tr>';
-		}
-		echo '</tbody></table><p class="description">در حالت «توسعه»، کدهای OTP اینجا نمایش داده می‌شوند تا جریان ثبت‌نام/ورود بدون درگاه پیامک قابل تست باشد.</p></div></div></div>';
+		echo '</div></div>';
 	}
 
 	/**

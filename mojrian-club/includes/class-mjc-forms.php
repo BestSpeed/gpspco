@@ -80,12 +80,7 @@ class MJC_Forms {
 		if ( empty( $_POST['accept_rules'] ) ) {
 			return new WP_Error( 'fields', 'پذیرش قوانین و حریم خصوصی الزامی است.' );
 		}
-		// راستی‌آزمایی OTP (در صورت فعال بودن).
-		$mobile = MJC_SMS::normalize_mobile( isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : '' ); // phpcs:ignore
-		$otp    = isset( $_POST['otp'] ) ? sanitize_text_field( wp_unslash( $_POST['otp'] ) ) : '';
-		if ( $mobile && $otp && ! MJC_SMS::verify_otp( $mobile, $otp, 'register' ) ) {
-			return new WP_Error( 'otp', 'کد تأیید موبایل نادرست یا منقضی شده است.' );
-		}
+		$mobile = mjc_normalize_mobile( isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : '' ); // phpcs:ignore
 
 		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$data = array(
@@ -142,61 +137,18 @@ class MJC_Forms {
 	 *
 	 * @return string|WP_Error
 	 */
-	public static function form_login_otp() {
-		self::verify( 'mjc_login' );
-		$mobile  = isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : ''; // phpcs:ignore
-		$code    = isset( $_POST['otp'] ) ? sanitize_text_field( wp_unslash( $_POST['otp'] ) ) : '';
-		$result  = MJC_Auth::login_with_otp( $mobile, $code );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		$user   = wp_get_current_user();
-		$member = MJC_Members::get_by_user( $user->ID );
-		if ( $member && 'approved' === $member->status ) {
-			return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'ok' ) );
-		}
-		return 'not_approved';
-	}
 
 	/**
 	 * فرم: بازیابی رمز.
 	 *
 	 * @return string|WP_Error
 	 */
-	public static function form_password_reset() {
-		self::verify( 'mjc_reset' );
-		$mobile = isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : ''; // phpcs:ignore
-		$code   = isset( $_POST['otp'] ) ? sanitize_text_field( wp_unslash( $_POST['otp'] ) ) : '';
-		$pass1  = isset( $_POST['password1'] ) ? (string) wp_unslash( $_POST['password1'] ) : '';
-		$pass2  = isset( $_POST['password2'] ) ? (string) wp_unslash( $_POST['password2'] ) : '';
-		if ( $pass1 !== $pass2 ) {
-			return new WP_Error( 'fields', 'تکرار رمز عبور مطابقت ندارد.' );
-		}
-		$result = MJC_Auth::reset_password( $mobile, $code, $pass1 );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		return array( 'redirect' => mjc_notice_url( mjc_page_url( 'login' ), 'ok', 'رمز عبور با موفقیت تغییر کرد. اکنون وارد شوید.' ) );
-	}
 
 	/**
 	 * فرم: ارسال OTP (ثبت‌نام/ورود/بازیابی).
 	 *
 	 * @return string|WP_Error
 	 */
-	public static function form_otp_send() {
-		self::verify( 'mjc_otp' );
-		$mobile  = isset( $_POST['mobile'] ) ? wp_unslash( $_POST['mobile'] ) : ''; // phpcs:ignore
-		$purpose = isset( $_POST['purpose'] ) ? sanitize_key( $_POST['purpose'] ) : 'register';
-		if ( ! in_array( $purpose, array( 'register', 'login', 'reset' ), true ) ) {
-			$purpose = 'register';
-		}
-		$result = MJC_SMS::send_otp( $mobile, $purpose );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		return 'otp_sent';
-	}
 
 	/**
 	 * فرم: پروفایل.

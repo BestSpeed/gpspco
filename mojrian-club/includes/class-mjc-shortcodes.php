@@ -269,15 +269,9 @@ class MJC_Shortcodes {
 		echo '</div>';
 
 		if ( 'register' === $tab ) {
-			echo self::form_open( 'otp_send', 'mjc_otp' );
-			echo '<input type="hidden" name="purpose" value="register" />';
-			echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true, 'placeholder' => '09xxxxxxxxx' ) );
-			echo self::form_close( 'ارسال کد تأیید' );
-			echo '<hr class="mjc-sep" />';
 			echo self::form_open( 'register', 'mjc_register' );
 			echo self::field( array( 'name' => 'full_name', 'label' => 'نام و نام خانوادگی', 'required' => true ) );
 			echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true ) );
-			echo self::field( array( 'name' => 'otp', 'label' => 'کد تأیید پیامکی' ) );
 			echo self::field( array( 'name' => 'national_code', 'label' => 'کد ملی', 'required' => true ) );
 			echo '<div class="mjc-grid mjc-grid-2">';
 			echo self::field( array( 'name' => 'province', 'label' => 'استان', 'required' => true ) );
@@ -298,7 +292,7 @@ class MJC_Shortcodes {
 			echo self::field( array( 'name' => 'username', 'label' => 'نام کاربری یا شماره موبایل', 'required' => true ) );
 			echo self::field( array( 'name' => 'password', 'label' => 'رمز عبور', 'type' => 'password', 'required' => true ) );
 			echo self::form_close( 'ورود به حساب' );
-			echo '<p class="mjc-center mjc-text-sm"><a href="' . esc_url( mjc_page_url( 'login' ) . '?tab=reset' ) . '">فراموشی رمز عبور</a> · <a href="' . esc_url( mjc_page_url( 'login' ) . '?tab=otp' ) . '">ورود با کد یک‌بارمصرف</a></p>';
+			echo '<p class="mjc-center mjc-text-sm"><a href="' . esc_url( wp_lostpassword_url() ) . '">فراموشی رمز عبور</a></p>';
 		}
 		echo '</div>';
 		return ob_get_clean();
@@ -424,54 +418,19 @@ class MJC_Shortcodes {
 	 * @return string
 	 */
 	public static function render_login() {
-		if ( is_user_logged_in() && ! isset( $_GET['tab'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( is_user_logged_in() ) {
 			return '<div class="mjc-wrap"><div class="mjc-card mjc-center"><p>شما وارد شده‌اید.</p><a class="mjc-btn mjc-btn-primary" href="' . esc_url( mjc_page_url( 'dashboard' ) ) . '">رفتن به داشبورد</a></div></div>';
 		}
-		$tab  = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'password'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$tabs = array( 'password' => 'ورود با رمز عبور', 'otp' => 'ورود با کد یک‌بارمصرف', 'reset' => 'فراموشی رمز عبور' );
-
 		ob_start();
-		echo '<div class="mjc-wrap mjc-narrow">';
-		mjc_render_notice();
 		echo '<div class="mjc-auth-card">';
 		echo '<h1 class="mjc-center">ورود به ' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</h1>';
-		echo '<div class="mjc-tabs">';
-		foreach ( $tabs as $key => $label ) {
-			$active = ( $tab === $key ) ? ' active' : '';
-			echo '<a class="mjc-tab' . $active . '" href="' . esc_url( add_query_arg( 'tab', $key, mjc_page_url( 'login' ) ) ) . '">' . esc_html( $label ) . '</a>';
-		}
+		echo self::form_open( 'login', 'mjc_login' );
+		echo self::field( array( 'name' => 'username', 'label' => 'نام کاربری یا شماره موبایل', 'required' => true ) );
+		echo self::field( array( 'name' => 'password', 'label' => 'رمز عبور', 'type' => 'password', 'required' => true ) );
+		echo self::form_close( 'ورود به حساب' );
+		echo '<p class="mjc-center mjc-text-sm"><a href="' . esc_url( wp_lostpassword_url() ) . '">فراموشی رمز عبور</a></p>';
+		echo '<p class="mjc-center mjc-text-sm">حساب کاربری ندارید؟ <a href="' . esc_url( mjc_page_url( 'register' ) ) . '">ثبت‌نام در باشگاه</a></p>';
 		echo '</div>';
-
-		if ( 'password' === $tab ) {
-			echo self::form_open( 'login', 'mjc_login' );
-			echo self::field( array( 'name' => 'username', 'label' => 'نام کاربری یا شماره موبایل', 'required' => true ) );
-			echo self::field( array( 'name' => 'password', 'label' => 'رمز عبور', 'type' => 'password', 'required' => true ) );
-			echo self::form_close( 'ورود' );
-		} elseif ( 'otp' === $tab ) {
-			echo self::form_open( 'otp_send', 'mjc_otp' );
-			echo '<input type="hidden" name="purpose" value="login" />';
-			echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true, 'placeholder' => '09xxxxxxxxx' ) );
-			echo self::form_close( 'ارسال کد تأیید' );
-			echo '<hr class="mjc-sep" />';
-			echo self::form_open( 'login_otp', 'mjc_login' );
-			echo self::field( array( 'name' => 'otp', 'label' => 'کد تأیید دریافتی', 'required' => true ) );
-			echo self::form_close( 'ورود با کد' );
-		} else {
-			echo self::form_open( 'otp_send', 'mjc_otp' );
-			echo '<input type="hidden" name="purpose" value="reset" />';
-			echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true ) );
-			echo self::form_close( 'ارسال کد تأیید' );
-			echo '<hr class="mjc-sep" />';
-			echo self::form_open( 'password_reset', 'mjc_reset' );
-			echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true ) );
-			echo self::field( array( 'name' => 'otp', 'label' => 'کد تأیید', 'required' => true ) );
-			echo self::field( array( 'name' => 'password1', 'label' => 'رمز عبور جدید', 'type' => 'password', 'required' => true ) );
-			echo self::field( array( 'name' => 'password2', 'label' => 'تکرار رمز عبور جدید', 'type' => 'password', 'required' => true ) );
-			echo self::form_close( 'تغییر رمز عبور' );
-		}
-
-		echo '<p class="mjc-center mjc-text-sm">عضو نیستید؟ <a href="' . esc_url( mjc_page_url( 'register' ) ) . '">ثبت‌نام در باشگاه</a></p>';
-		echo '</div></div>';
 		return ob_get_clean();
 	}
 
@@ -484,49 +443,31 @@ class MJC_Shortcodes {
 		if ( is_user_logged_in() ) {
 			return '<div class="mjc-wrap"><div class="mjc-card mjc-center"><p>شما قبلاً ثبت‌نام کرده‌اید.</p><a class="mjc-btn mjc-btn-primary" href="' . esc_url( mjc_page_url( 'dashboard' ) ) . '">داشبورد من</a></div></div>';
 		}
-		$ref = isset( $_GET['ref'] ) ? sanitize_text_field( wp_unslash( $_GET['ref'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$ref = isset( $_GET['ref'] ) ? sanitize_text_field( wp_unslash( $_GET['ref'] ) ) : '';
+		// phpcs:enable
 		ob_start();
-		echo '<div class="mjc-wrap mjc-narrow">';
-		mjc_render_notice();
 		echo '<div class="mjc-auth-card">';
 		echo '<h1 class="mjc-center">ثبت‌نام در ' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</h1>';
-		echo '<p class="mjc-center mjc-text-sm">پس از تکمیل فرم و تأیید موبایل، درخواست شما توسط مدیر باشگاه بررسی می‌شود.</p>';
-
-		echo self::form_open( 'otp_send', 'mjc_otp' );
-		echo '<input type="hidden" name="purpose" value="register" />';
-		echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true, 'placeholder' => '09xxxxxxxxx' ) );
-		echo self::form_close( 'ارسال کد تأیید' );
-		echo '<hr class="mjc-sep" />';
-
 		echo self::form_open( 'register', 'mjc_register' );
 		echo self::field( array( 'name' => 'full_name', 'label' => 'نام و نام خانوادگی', 'required' => true ) );
-		echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true ) );
-		echo self::field( array( 'name' => 'otp', 'label' => 'کد تأیید پیامکی' ) );
-		echo self::field( array( 'name' => 'national_code', 'label' => 'کد ملی', 'required' => true, 'placeholder' => '۱۰ رقم' ) );
+		echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true, 'placeholder' => '09xxxxxxxxx' ) );
+		echo self::field( array( 'name' => 'national_code', 'label' => 'کد ملی', 'required' => true ) );
 		echo '<div class="mjc-grid mjc-grid-2">';
 		echo self::field( array( 'name' => 'province', 'label' => 'استان', 'required' => true ) );
 		echo self::field( array( 'name' => 'city', 'label' => 'شهر' ) );
 		echo '</div>';
 		echo self::field( array(
 			'name' => 'job_type', 'label' => 'نوع فعالیت', 'type' => 'select', 'required' => true,
-			'options' => array(
-				''          => 'انتخاب کنید',
-				'water'     => 'آب و فاضلاب',
-				'gas'       => 'گاز',
-				'heating'   => 'شوفاژ و تأسیسات حرارتی',
-				'hvac'      => 'تهویه مطبوع',
-				'other'     => 'سایر',
-			),
+			'options' => array( '' => 'انتخاب کنید', 'water' => 'آب و فاضلاب', 'gas' => 'گاز', 'heating' => 'شوفاژ و تأسیسات حرارتی', 'hvac' => 'تهویه مطبوع', 'other' => 'سایر' ),
 		) );
 		echo self::field( array( 'name' => 'experience', 'label' => 'سابقه کار (سال)', 'type' => 'number' ) );
 		echo self::field( array( 'name' => 'workshop_address', 'label' => 'نشانی کارگاه/دفتر' ) );
 		echo self::field( array( 'name' => 'password', 'label' => 'رمز عبور (حداقل ۸ کاراکتر)', 'type' => 'password', 'required' => true ) );
 		echo self::field( array( 'name' => 'referral_code', 'label' => 'کد معرف (اختیاری)', 'value' => $ref ) );
-		echo '<label class="mjc-check"><input type="checkbox" name="accept_rules" value="1" required /> <span>قوانین و حریم خصوصی باشگاه را مطالعه کرده و می‌پذیرم.</span></label>';
-		echo self::form_close( 'ثبت‌نام' );
-		echo '<p class="mjc-center mjc-text-sm">قبلاً ثبت‌نام کرده‌اید؟ <a href="' . esc_url( mjc_page_url( 'login' ) ) . '">ورود</a></p>';
-		echo '</div></div>';
+		echo '<label class="mjc-check"><input type="checkbox" name="accept_rules" value="1" required /> <span>قوانین و حریم خصوصی باشگاه را می‌پذیرم.</span></label>';
+		echo self::form_close( 'ثبت‌نام در باشگاه' );
+		echo '</div>';
 		return ob_get_clean();
 	}
 

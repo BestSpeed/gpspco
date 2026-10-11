@@ -47,7 +47,7 @@ class MJC_Auth {
 	 * @return int|WP_Error شناسه کاربر.
 	 */
 	public static function register( $data ) {
-		$mobile = MJC_SMS::normalize_mobile( isset( $data['mobile'] ) ? $data['mobile'] : '' );
+		$mobile = mjc_normalize_mobile( isset( $data['mobile'] ) ? $data['mobile'] : '' );
 		if ( ! $mobile ) {
 			return new WP_Error( 'mjc_fields', 'شماره موبایل معتبر نیست.' );
 		}
@@ -117,7 +117,7 @@ class MJC_Auth {
 			}
 			MJC_Points::award_by_rule( $user_id, 'welcome', 'خوش‌آمدگویی عضویت در باشگاه', 'member', $member_id );
 			if ( $referred_by ) {
-				MJC_Points::award_by_rule( $referred_by, 'referral_joined', 'معرفی عضو جدید (' . MJC_SMS::pretty_mobile( $mobile ) . ')', 'member', $member_id );
+				MJC_Points::award_by_rule( $referred_by, 'referral_joined', 'معرفی عضو جدید (' . mjc_pretty_mobile( $mobile ) . ')', 'member', $member_id );
 			}
 		}
 
@@ -139,7 +139,7 @@ class MJC_Auth {
 	 */
 	public static function login( $username, $password ) {
 		$username = trim( (string) $username );
-		$mobile   = MJC_SMS::normalize_mobile( $username );
+		$mobile   = mjc_normalize_mobile( $username );
 		if ( $mobile ) {
 			$username = $mobile;
 		}
@@ -161,24 +161,6 @@ class MJC_Auth {
 	 * @param string $code کد.
 	 * @return true|WP_Error
 	 */
-	public static function login_with_otp( $mobile, $code ) {
-		$mobile = MJC_SMS::normalize_mobile( $mobile );
-		if ( ! MJC_SMS::verify_otp( $mobile, $code, 'login' ) ) {
-			return new WP_Error( 'mjc_otp', 'کد تأیید نادرست یا منقضی شده است.' );
-		}
-		$user = get_user_by( 'login', $mobile );
-		if ( ! $user ) {
-			// شاید با نام کاربری دیگری ثبت شده؛ جست‌وجو با متا.
-			$users = get_users( array( 'meta_key' => 'mjc_mobile', 'meta_value' => $mobile, 'number' => 1 ) );
-			$user  = $users ? $users[0] : null;
-		}
-		if ( ! $user ) {
-			return new WP_Error( 'mjc_nouser', 'کاربری با این شماره یافت نشد.' );
-		}
-		wp_set_current_user( $user->ID );
-		wp_set_auth_cookie( $user->ID );
-		return true;
-	}
 
 	/**
 	 * بازیابی رمز عبور با OTP.
@@ -188,20 +170,4 @@ class MJC_Auth {
 	 * @param string $new_password رمز جدید.
 	 * @return true|WP_Error
 	 */
-	public static function reset_password( $mobile, $code, $new_password ) {
-		$mobile = MJC_SMS::normalize_mobile( $mobile );
-		if ( ! MJC_SMS::verify_otp( $mobile, $code, 'reset' ) ) {
-			return new WP_Error( 'mjc_otp', 'کد تأیید نادرست یا منقضی شده است.' );
-		}
-		if ( strlen( (string) $new_password ) < 8 ) {
-			return new WP_Error( 'mjc_fields', 'رمز عبور باید حداقل ۸ کاراکتر باشد.' );
-		}
-		$user = get_user_by( 'login', $mobile );
-		if ( ! $user ) {
-			return new WP_Error( 'mjc_nouser', 'کاربری با این شماره یافت نشد.' );
-		}
-		wp_set_password( (string) $new_password, $user->ID );
-		MJC_Notify::push( $user->ID, 'تغییر رمز عبور', 'رمز عبور حساب شما با موفقیت تغییر کرد.' );
-		return true;
-	}
 }

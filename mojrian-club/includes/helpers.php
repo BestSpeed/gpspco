@@ -283,3 +283,35 @@ function mjc_uploaded_ids( $field ) {
 function mjc_empty_state( $text ) {
 	return '<div class="mjc-empty">' . esc_html( $text ) . '</div>';
 }
+
+/**
+ * نرمال‌سازی شماره موبایل به فرمت 989xxxxxxxxx.
+ *
+ * @param string $mobile شماره خام.
+ * @return string شماره نرمال یا رشته‌ی خالی.
+ */
+function mjc_normalize_mobile( $mobile ) {
+	$mobile = mjc_to_en_digits( $mobile );
+	$mobile = preg_replace( '/[\s\-()+]/', '', (string) $mobile );
+	if ( preg_match( '/^989\d{9}$/', $mobile ) ) {
+		return $mobile;
+	}
+	if ( preg_match( '/^0?9\d{9}$/', $mobile ) ) {
+		return '98' . ltrim( $mobile, '0' );
+	}
+	return '';
+}
+
+/**
+ * نمایش شماره به فرمت 09xx xxx xxxx.
+ *
+ * @param string $mobile شماره ذخیره‌شده (98...).
+ * @return string
+ */
+function mjc_pretty_mobile( $mobile ) {
+	$mobile = (string) $mobile;
+	if ( strpos( $mobile, '989' ) === 0 ) {
+		$mobile = '0' . substr( $mobile, 2 );
+	}
+	return mjc_num( $mobile );
+}

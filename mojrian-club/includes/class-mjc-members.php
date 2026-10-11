@@ -120,7 +120,7 @@ class MJC_Members {
 			// امتیاز خوش‌آمدگویی و پاداش معرف.
 			MJC_Points::award_by_rule( (int) $member->user_id, 'welcome', 'خوش‌آمدگویی عضویت در باشگاه' );
 			if ( ! empty( $member->referred_by ) ) {
-				MJC_Points::award_by_rule( (int) $member->referred_by, 'referral_joined', 'معرفی عضو جدید (' . MJC_SMS::pretty_mobile( $member->mobile ) . ')' );
+				MJC_Points::award_by_rule( (int) $member->referred_by, 'referral_joined', 'معرفی عضو جدید (' . mjc_pretty_mobile( $member->mobile ) . ')' );
 			}
 		} elseif ( 'rejected' === $status ) {
 			MJC_Notify::push( (int) $member->user_id, 'ثبت‌نام شما تأیید نشد', 'متأسفانه درخواست عضویت شما پذیرفته نشد. دلیل: ' . $reason );

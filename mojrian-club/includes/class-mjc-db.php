@@ -229,15 +229,6 @@ class MJC_DB {
 			KEY created_at (created_at)
 		) $charset;";
 
-		$sqls[] = "CREATE TABLE {$p}sms_log (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			mobile VARCHAR(20) NOT NULL DEFAULT '',
-			message TEXT NULL,
-			status VARCHAR(20) NOT NULL DEFAULT 'sent',
-			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-			PRIMARY KEY  (id),
-			KEY mobile (mobile)
-		) $charset;";
 
 		foreach ( $sqls as $sql ) {
 			dbDelta( $sql );
