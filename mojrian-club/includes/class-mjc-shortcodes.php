@@ -489,9 +489,11 @@ class MJC_Shortcodes {
 		$label     = mjc_get_setting( 'points_label', 'امتیاز' );
 		$earned    = (float) MJC_DB::var( 'SELECT COALESCE(SUM(amount),0) FROM ' . mjc_table( 'points_ledger' ) . ' WHERE user_id = %d AND amount > 0', array( $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$banner_id = (int) mjc_get_setting( 'dashboard_banner_id', 0 );
-		$bcast    = mjc_latest_broadcast();
+		$bcast     = mjc_latest_broadcast();
 		$campaigns = get_posts( array( 'post_type' => 'mjc_campaign', 'post_status' => 'publish', 'numberposts' => 3, 'orderby' => 'date', 'order' => 'DESC', 'no_found_rows' => true ) );
 		list( $notifications ) = MJC_Notify::list_for_user( $user_id, 1, 10 );
+		$user                  = wp_get_current_user();
+		$username              = ( $member && $member->mobile ) ? mjc_pretty_mobile( $member->mobile ) : ( $user && $user->user_login ? $user->user_login : '' );
 
 		ob_start();
 
@@ -500,27 +502,44 @@ class MJC_Shortcodes {
 			echo '<div class="mjc-dash-banner">' . wp_get_attachment_image( $banner_id, 'full' ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
-		// عنوان ۳ کمپین آخر.
-		echo '<div class="mjc-card"><h2>آخرین کمپین‌ها</h2>';
-		if ( $campaigns ) {
-			echo '<ul class="mjc-camp-list">';
-			foreach ( $campaigns as $c ) {
-				echo '<li><a href="' . esc_url( get_permalink( $c->ID ) ) . '">' . esc_html( $c->post_title ) . '</a></li>';
-			}
-			echo '</ul>';
-		} else {
-			echo '<p class="mjc-empty">در حال حاضر کمپینی ثبت نشده است.</p>';
-		}
+		// ====== «حساب کاربری» مطابق ماکت: کارت خوش‌آمد + سایدبار کلیدها ======
+		echo '<div class="mjc-acc-layout">';
+
+		// کارت اصلی.
+		echo '<div class="mjc-acc-main">';
+		echo '<h1 class="mjc-acc-title">به حساب کاربری خود خوش آمدید</h1>';
+		echo '<h2 class="mjc-acc-subtitle">هدف از ایجاد باشگاه مجریان تاسیسات گیتی پسند</h2>';
+		echo '<p class="mjc-acc-para">پخش هدایایی تبلیغاتی توسط نمایندگی های هر منطقه انجام میشود و هدایا و جوایز بطور مستمری و بی واسطه به دست مجریان عزیز برسد .</p>';
+		echo '<h2 class="mjc-acc-subtitle">توضیحات کلید های قسمت حساب کاربری</h2>';
+		echo '<div class="mjc-acc-desc"><p><b>تکمیل اطلاعات کاربر :</b> برای ارسال پستی جوایزی که پیشتر برنده شده‌اید، نیاز به کامل کردن اطلاعات کاربر است</p>';
+		echo '<p><b>ثبت پروژه تاسیسات :</b> برای ارسال پروژه های تاسیساتی و کسب امتیازات در باشگاه</p>';
+		echo '<p><b>تبدیل امتیازات به جوایز :</b> در این بخش میتوانید با توجه به امتیازاتی که تا به الان به دست آورده اید جوایز خود را انتخاب نمایید</p>';
+		echo '<p><b>خروج شدن از قسمت :</b> برای دسترسی به قسمت های دیگر سایت لطفا از حساب کاربری خود خارج شوید</p></div>';
 		echo '</div>';
 
-		// میزان امتیاز دریافتی کاربر.
-		echo '<div class="mjc-stats">';
-		echo '<div class="mjc-stat mjc-stat-highlight"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( $earned ) ) ) . '</span><span class="mjc-stat-label">میزان ' . esc_html( $label ) . ' دریافتی شما</span></div>';
-		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( (float) $member->points_balance ) ) ) . '</span><span class="mjc-stat-label">' . esc_html( $label ) . ' فعلی شما</span></div>';
+		// سایدبار: آواتار + خوش‌آمد + کلیدها.
+		echo '<div class="mjc-acc-side">';
+		echo '<div class="mjc-acc-avatar" aria-hidden="true"><svg viewBox="0 0 64 64" width="72" height="72"><circle cx="32" cy="22" r="13" fill="#111"/><path d="M8 58c2-13 12-20 24-20s22 7 24 20z" fill="#111"/></svg></div>';
+		echo '<div class="mjc-acc-hello"><span>میهمان خوش آمدید</span><small>نام کاربری : ' . esc_html( mjc_num( (string) $username ) ) . '</small></div>';
+		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'profile' ) ) . '">تکمیل اطلاعات کاربر</a>';
+		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'guide' ) ) . '">راهنمای باشگاه</a>';
+		echo '<a class="mjc-key mjc-key-primary" href="' . esc_url( mjc_page_url( 'projects' ) ) . '">ثبت پروژه تاسیسات</a>';
+		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'rewards' ) ) . '">تبدیل امتیازات به جوایز</a>';
+		echo '<a class="mjc-key mjc-key-danger" href="' . esc_url( wp_logout_url( mjc_page_url( 'dashboard' ) ) ) . '">خروج از حساب کاربری<span class="mjc-key-ico" aria-hidden="true">⏻</span></a>';
 		echo '</div>';
 
-		// اعلان‌ها | پیام مدیر.
+		echo '</div>'; // /mjc-acc-layout
+
+		// ====== «پیام مدیر» (آخرین اعلان همگانی) + اعلان‌ها ======
 		echo '<div class="mjc-grid mjc-grid-2">';
+		echo '<div class="mjc-card"><h3>پیام مدیر</h3><div class="mjc-mgr-msg">';
+		if ( $bcast ) {
+			echo wp_kses_post( wpautop( $bcast->message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<p class="mjc-text-sm mjc-mgr-msg-date">ارسال: ' . esc_html( mjc_date( $bcast->created_at, false ) ) . '</p>';
+		} else {
+			echo '<p class="mjc-empty">پیامی ثبت نشده است.</p>';
+		}
+		echo '</div></div>';
 		echo '<div class="mjc-card"><h3>اعلان‌ها</h3>';
 		if ( $notifications ) {
 			echo '<ul class="mjc-notif-list">';
@@ -538,13 +557,24 @@ class MJC_Shortcodes {
 			echo '<p class="mjc-empty">اعلانی ندارید.</p>';
 		}
 		echo '</div>';
-		echo '<div class="mjc-card"><h3>پیام مدیر</h3><div class="mjc-mgr-msg">';
-		if ( $bcast ) {
-			echo wp_kses_post( wpautop( $bcast->message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo '<p class="mjc-text-sm mjc-mgr-msg-date">ارسال: ' . esc_html( mjc_date( $bcast->created_at, false ) ) . '</p>';
+		echo '</div>';
+
+		// ====== کمپین‌ها و امتیاز دریافتی ======
+		echo '<div class="mjc-grid mjc-grid-2">';
+		echo '<div class="mjc-card"><h3>آخرین کمپین‌ها</h3>';
+		if ( $campaigns ) {
+			echo '<ul class="mjc-camp-list">';
+			foreach ( $campaigns as $c ) {
+				echo '<li><a href="' . esc_url( get_permalink( $c->ID ) ) . '">' . esc_html( $c->post_title ) . '</a></li>';
+			}
+			echo '</ul>';
 		} else {
-			echo '<p class="mjc-empty">پیامی ثبت نشده است.</p>';
+			echo '<p class="mjc-empty">در حال حاضر کمپینی ثبت نشده است.</p>';
 		}
+		echo '</div>';
+		echo '<div class="mjc-card"><h3>امتیاز شما</h3><div class="mjc-stats">';
+		echo '<div class="mjc-stat mjc-stat-highlight"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( $earned ) ) ) . '</span><span class="mjc-stat-label">میزان ' . esc_html( $label ) . ' دریافتی شما</span></div>';
+		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( (float) $member->points_balance ) ) ) . '</span><span class="mjc-stat-label">' . esc_html( $label ) . ' فعلی شما</span></div>';
 		echo '</div></div>';
 		echo '</div>';
 

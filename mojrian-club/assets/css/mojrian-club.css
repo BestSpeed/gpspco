@@ -543,6 +543,50 @@
 .mjc-mf-actions .mjc-check input[type="checkbox"] { width: 18px; height: 18px; }
 .mjc-mf-actions .mjc-btn { border-radius: 4px; padding: 9px 26px; }
 
+/* ======== «حساب کاربری» مطابق ماکت (کلیدها و کارت خوش‌آمد) ======== */
+.mjc-acc-layout { display: grid; grid-template-columns: 1fr 260px; gap: 18px; margin: 18px 0; align-items: start; }
+.mjc-acc-main {
+	background: #e1e6ec; border-radius: 18px; padding: 30px 34px 26px;
+	box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+}
+.mjc-acc-title { color: #df3e34; font-size: 1.35rem; font-weight: 800; text-align: center; margin: 4px 0 14px; }
+.mjc-acc-subtitle { color: #3f6fd8; font-size: 1.02rem; font-weight: 800; text-align: center; margin: 16px 0 12px; }
+.mjc-acc-para { color: #3c4043; font-size: .92rem; line-height: 2.1; text-align: justify; margin: 0 0 8px; }
+.mjc-acc-desc p { color: #3c4043; font-size: .92rem; line-height: 2.1; text-align: justify; margin: 10px 0; }
+.mjc-acc-desc b { font-weight: 800; }
+.mjc-acc-side {
+	background: #e1e6ec; border-radius: 18px; padding: 18px 16px;
+	display: flex; flex-direction: column; gap: 12px;
+	box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+}
+.mjc-acc-avatar {
+	width: 96px; height: 104px; margin: 4px auto 6px; border-radius: 14px;
+	background: #eef1f5; display: flex; align-items: center; justify-content: center;
+}
+.mjc-acc-hello {
+	background: #fff; border-radius: 12px; padding: 12px 10px; text-align: center;
+	display: flex; flex-direction: column; gap: 6px; color: #465481;
+}
+.mjc-acc-hello span { font-weight: 700; font-size: .95rem; }
+.mjc-acc-hello small { font-size: .82rem; color: #465481; }
+.mjc-key {
+	display: flex; align-items: center; justify-content: center; gap: 8px;
+	background: #f4f5f9; color: #465481; border: 0; border-radius: 12px;
+	padding: 13px 12px; font-size: .92rem; font-weight: 600;
+	text-decoration: none; text-align: center; transition: .15s;
+	box-shadow: 0 2px 6px rgba(15, 23, 42, .07);
+}
+.mjc-key:hover { filter: brightness(.97); text-decoration: none; color: #465481; }
+.mjc-key-primary { background: #47557c; color: #fff; }
+.mjc-key-primary:hover { color: #fff; }
+.mjc-key-danger { background: #df3e34; color: #fff; }
+.mjc-key-danger:hover { color: #fff; }
+.mjc-key-ico { font-size: 1.05rem; line-height: 1; }
+@media (max-width: 900px) {
+	.mjc-acc-layout { grid-template-columns: 1fr; }
+	.mjc-acc-side { order: -1; }
+}
+
 /* ======== داشبورد و پروژه‌ها (نسخه ۱٫۴) ======== */
 .mjc-dash-banner { margin-bottom: 18px; border-radius: 16px; overflow: hidden; }
 .mjc-dash-banner img { display: block; width: 100%; height: auto; }

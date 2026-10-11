@@ -67,6 +67,17 @@ class MJC_Points {
 	}
 
 	/**
+	 * موجودی امتیاز کاربر.
+	 *
+	 * @param int $user_id شناسه کاربر.
+	 * @return float موجودی فعلی.
+	 */
+	public static function balance( $user_id ) {
+		$member = MJC_Members::get_by_user( (int) $user_id );
+		return $member ? (float) $member->points_balance : 0.0;
+	}
+
+	/**
 	 * اعطای امتیاز بر اساس قانون تنظیمات.
 	 *
 	 * @param int    $user_id شناسه کاربر.
