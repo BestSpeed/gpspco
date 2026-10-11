@@ -207,21 +207,82 @@ class MJC_Forms {
 		if ( ! $user_id ) {
 			return new WP_Error( 'access', 'ابتدا وارد شوید.' );
 		}
-		$data = array(
-			'full_name'        => isset( $_POST['full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['full_name'] ) ) : '',
-			'national_code'    => isset( $_POST['national_code'] ) ? mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['national_code'] ) ) ) : '',
-			'province'         => isset( $_POST['province'] ) ? sanitize_text_field( wp_unslash( $_POST['province'] ) ) : '',
-			'city'             => isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '',
-			'job_type'         => isset( $_POST['job_type'] ) ? sanitize_text_field( wp_unslash( $_POST['job_type'] ) ) : '',
-			'experience'       => isset( $_POST['experience'] ) ? (int) $_POST['experience'] : 0,
-			'workshop_address' => isset( $_POST['workshop_address'] ) ? sanitize_text_field( wp_unslash( $_POST['workshop_address'] ) ) : '',
-		);
-		if ( '' === $data['full_name'] ) {
-			return new WP_Error( 'fields', 'نام و نام خانوادگی الزامی است.' );
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		$first = isset( $_POST['first_name'] ) ? sanitize_text_field( wp_unslash( $_POST['first_name'] ) ) : '';
+		$last  = isset( $_POST['last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['last_name'] ) ) : '';
+		$full  = trim( $first . ' ' . $last );
+		if ( '' === $full ) {
+			$full = isset( $_POST['full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['full_name'] ) ) : '';
 		}
+		$ncode_raw  = isset( $_POST['national_code'] ) ? mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['national_code'] ) ) ) : '';
+		$mobile_raw = isset( $_POST['mobile'] ) ? mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['mobile'] ) ) ) : '';
+		$ref_raw    = isset( $_POST['referrer_mobile'] ) ? mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['referrer_mobile'] ) ) ) : '';
+		$bday   = isset( $_POST['birth_day'] ) ? (int) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['birth_day'] ) ) ) : 0;
+		$bmonth = isset( $_POST['birth_month'] ) ? (int) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['birth_month'] ) ) ) : 0;
+		$byear  = isset( $_POST['birth_year'] ) ? (int) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['birth_year'] ) ) ) : 0;
+		// phpcs:enable
+		$mobile  = MJC_Validator::mobile( $mobile_raw );
+		$ref_mob = '' !== $ref_raw ? MJC_Validator::mobile( $ref_raw ) : null;
+		if ( '' !== $ref_raw && ! $ref_mob ) {
+			return new WP_Error( 'fields', 'شماره موبایل معرف معتبر نیست.' );
+		}
+		$ncode   = MJC_Validator::national_code( $ncode_raw );
+		$address = isset( $_POST['address'] ) ? sanitize_text_field( wp_unslash( $_POST['address'] ) ) : '';
+		$postal  = isset( $_POST['postal_code'] ) ? mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['postal_code'] ) ) ) : '';
+		$nat     = isset( $_POST['nationality'] ) ? sanitize_text_field( wp_unslash( $_POST['nationality'] ) ) : 'ایران';
+		$prov    = isset( $_POST['province'] ) ? sanitize_text_field( wp_unslash( $_POST['province'] ) ) : '';
+		$city    = isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '';
+		$work    = isset( $_POST['work_address'] ) ? sanitize_text_field( wp_unslash( $_POST['work_address'] ) ) : '';
+		$errors  = array();
+		if ( '' === $full ) {
+			$errors[] = 'نام و نام خانوادگی الزامی است.';
+		}
+		if ( '' === $ncode_raw || ! $ncode ) {
+			$errors[] = 'کد ملی معتبر نیست.';
+		}
+		if ( ! $mobile ) {
+			$errors[] = 'شماره موبایل معتبر نیست.';
+		}
+		$birthdate = '';
+		if ( $bday >= 1 && $bday <= 31 && $bmonth >= 1 && $bmonth <= 12 && $byear >= 1300 && $byear < 1500 ) {
+			$birthdate = sprintf( '%04d-%02d-%02d', $byear, $bmonth, $bday );
+		}
+		if ( '' === $birthdate ) {
+			$errors[] = 'تاریخ تولد را کامل انتخاب کنید.';
+		}
+		if ( '' === $address ) {
+			$errors[] = 'نشانی الزامی است.';
+		}
+		if ( '' === $city || '' === $prov ) {
+			$errors[] = 'استان و شهر الزامی است.';
+		}
+		if ( $errors ) {
+			return new WP_Error( 'fields', implode( ' ', $errors ) );
+		}
+
+		$data = array(
+			'full_name'        => $full,
+			'first_name'       => $first,
+			'last_name'        => $last,
+			'national_code'    => $ncode,
+			'mobile'           => $mobile,
+			'referrer_mobile'  => $ref_mob,
+			'birth_day'        => $bday,
+			'birth_month'      => $bmonth,
+			'birth_year'       => $byear,
+			'birthdate'        => $birthdate,
+			'nationality'      => $nat ? $nat : 'ایران',
+			'province'         => $prov,
+			'city'             => $city,
+			'address'          => $address,
+			'work_address'     => $work,
+			'postal_code'      => preg_replace( '/[^0-9]/', '', $postal ),
+			'workshop_address' => $work,
+			'profile_completed' => 1,
+		);
 		MJC_Members::upsert( $user_id, $data );
 		if ( ! empty( $data['full_name'] ) ) {
-			wp_update_user( array( 'ID' => $user_id, 'display_name' => $data['full_name'], 'first_name' => $data['full_name'] ) );
+			wp_update_user( array( 'ID' => $user_id, 'display_name' => $data['full_name'] ) );
 		}
 		do_action( 'mjc_profile_updated', $user_id );
 		return 'ok';

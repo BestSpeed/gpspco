@@ -48,37 +48,23 @@ class MJC_Rewards {
 		if ( get_option( 'mjc_rewards_seeded' ) ) {
 			return;
 		}
+		// کاتالوگ پیش‌فرض مطابق ماکت «تبدیل امتیازات به جوایز» (ابزارآلات و لوله).
 		$rewards = array(
-			array(
-				'title'   => 'کارت هدیه نقدی ۵۰۰ هزار تومانی',
-				'points'  => 5000,
-				'stock'   => 50,
-				'content' => 'کارت هدیه نقدی قابل استفاده در فروشگاه‌های طرف قرارداد گروه. پس از تأیید درخواست، کد کارت هدیه برای شما ارسال می‌شود.',
-			),
-			array(
-				'title'   => 'دریل شارژی حرفه‌ای',
-				'points'  => 12000,
-				'stock'   => 20,
-				'content' => 'ابزارآلات تخصصی مورد نیاز مجریان؛ ارسال رایگان به سراسر کشور به همراه گارانتی و خدمات پس از فروش ابزارآلات.',
-			),
-			array(
-				'title'   => 'بیمه تکمیلی یک‌ساله',
-				'points'  => 20000,
-				'stock'   => 30,
-				'content' => 'بیمه تکمیلی درمان ویژه‌ی مجریان عضو باشگاه؛ پس از تأیید، هماهنگی ثبت‌نام با کارشناس باشگاه انجام می‌شود.',
-			),
-			array(
-				'title'   => 'بن خرید محصولات گروه',
-				'points'  => 3000,
-				'stock'   => 100,
-				'content' => 'بن خرید محصولات لوله و اتصالات جهت استفاده از نمایندگی‌های مجاز سراسر کشور.',
-			),
-			array(
-				'title'   => 'ست ابزار هدیه باشگاه',
-				'points'  => 1500,
-				'stock'   => 200,
-				'content' => 'ست کامل ابزار همراه مجری (پیچ‌گوشتی، آچار، متر و…) با برند باشگاه مجریان.',
-			),
+			array( 'title' => 'متر (نوار متر)', 'points' => 140, 'stock' => 40, 'icon' => '📏', 'content' => 'نوار متر ۵ متری مخصوص مجریان تأسیسات.' ),
+			array( 'title' => 'لوله ۲۵', 'points' => 145, 'stock' => 40, 'icon' => '🧱', 'content' => 'لوله تأسیسات سایز ۲۵.' ),
+			array( 'title' => 'لوله ۵۵', 'points' => 245, 'stock' => 30, 'icon' => '🧱', 'content' => 'لوله تأسیسات سایز ۵۵.' ),
+			array( 'title' => 'لوله ۳۳', 'points' => 345, 'stock' => 30, 'icon' => '🧱', 'content' => 'لوله تأسیسات سایز ۳۳.' ),
+			array( 'title' => 'لوله ۵۰', 'points' => 445, 'stock' => 30, 'icon' => '🧱', 'content' => 'لوله تأسیسات سایز ۵۰.' ),
+			array( 'title' => 'قیچی لوله‌بری', 'points' => 550, 'stock' => 20, 'icon' => '✂️', 'content' => 'قیچی برش لوله پلیمری.' ),
+			array( 'title' => 'فرز برش لوله', 'points' => 485, 'stock' => 15, 'icon' => '⚙️', 'content' => 'فرز مخصوص برش لوله.' ),
+			array( 'title' => 'کولیس', 'points' => 590, 'stock' => 15, 'icon' => '📐', 'content' => 'کولیس اندازه‌گیری دقیق.' ),
+			array( 'title' => 'کیف ابزار', 'points' => 890, 'stock' => 12, 'icon' => '🧰', 'content' => 'کیف ابزار جادار ویژه مجریان.' ),
+			array( 'title' => 'دریل سه‌کاره', 'points' => 390, 'stock' => 15, 'icon' => '🔧', 'content' => 'دریل سه‌کاره صنعتی.' ),
+			array( 'title' => 'دریل ۵۳۰', 'points' => 785, 'stock' => 10, 'icon' => '🔧', 'content' => 'دریل ۵۳۰ وات.' ),
+			array( 'title' => 'جعبه پیچ‌گوشتی', 'points' => 1490, 'stock' => 10, 'icon' => '🪛', 'content' => 'جعبه پیچ‌گوشتی چندتکه.' ),
+			array( 'title' => 'اتو لوله‌جوش', 'points' => 3300, 'stock' => 6, 'icon' => '🔥', 'content' => 'دستگاه اتو لوله‌جوش.' ),
+			array( 'title' => 'لباس کار', 'points' => 590, 'stock' => 20, 'icon' => '🦺', 'content' => 'لباس کار مخصوص مجریان.' ),
+			array( 'title' => 'دستگاه پرس لوله', 'points' => 11390, 'stock' => 3, 'icon' => '🛠️', 'content' => 'دستگاه پرس لوله حرفه‌ای.' ),
 		);
 		foreach ( $rewards as $r ) {
 			$post_id = wp_insert_post( array(
@@ -90,6 +76,7 @@ class MJC_Rewards {
 			if ( $post_id && ! is_wp_error( $post_id ) ) {
 				update_post_meta( $post_id, 'mjc_points_cost', (int) $r['points'] );
 				update_post_meta( $post_id, 'mjc_stock', (int) $r['stock'] );
+				update_post_meta( $post_id, 'mjc_icon', sanitize_text_field( $r['icon'] ) );
 			}
 		}
 		update_option( 'mjc_rewards_seeded', 1 );

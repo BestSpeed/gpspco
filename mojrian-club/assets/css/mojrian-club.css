@@ -72,8 +72,8 @@
 	line-height: 1.6;
 }
 .mjc-btn:hover { transform: translateY(-2px); text-decoration: none; }
-.mjc-btn-primary { background: var(--mjc-primary); color: #fff; box-shadow: 0 6px 16px rgba(14, 116, 144, .35); }
-.mjc-btn-primary:hover { background: var(--mjc-primary-dark); color: #fff; }
+.mjc-btn-primary { background: #fff; color: var(--mjc-text); border: 1px solid #f43f5e; box-shadow: none; }
+.mjc-btn-primary:hover { background: #fff1f2; color: #be123c; border-color: #e11d48; }
 .mjc-btn-ghost { background: rgba(255, 255, 255, .16); color: #fff; border: 1px solid rgba(255, 255, 255, .45); }
 .mjc-btn-soft { background: #e0f2fe; color: var(--mjc-primary-dark); }
 .mjc-hero .mjc-btn-primary { background: #fff; color: var(--mjc-primary-dark); }
@@ -389,3 +389,73 @@
 .mjc-elementor-account .mjc-elementor-title { margin-bottom: 6px; }
 .mjc-elementor-account .mjc-elementor-note { color: var(--mjc-muted); margin-bottom: 16px; }
 .mjc-elementor-account .mjc-wrap { background: transparent; padding: 0; }
+
+/* ======== مطابق ماکت‌های کارفرما ======== */
+.mjc-account-wrap { display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start; }
+.mjc-account-side { background: var(--mjc-card); border: 1px solid var(--mjc-border); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.mjc-side-avatar { width: 96px; height: 96px; margin: 6px auto 2px; border-radius: 50%; background: #fff; border: 1px solid var(--mjc-border); display: flex; align-items: center; justify-content: center; font-size: 2.6rem; }
+.mjc-side-user { text-align: center; display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.mjc-side-user strong { color: var(--mjc-primary-dark); font-size: .95rem; }
+.mjc-side-user span { color: var(--mjc-text); font-size: .85rem; }
+.mjc-side-btn {
+	display: block; text-align: center; background: #fff; color: var(--mjc-text);
+	border: 1px solid var(--mjc-border); border-radius: 12px; padding: 11px 12px;
+	text-decoration: none; font-weight: 600; font-size: .88rem; transition: .15s;
+}
+.mjc-side-btn:hover { border-color: var(--mjc-primary); color: var(--mjc-primary-dark); text-decoration: none; }
+.mjc-side-btn.mjc-side-active { background: #3d4f63; border-color: #3d4f63; color: #fff; }
+.mjc-side-btn.mjc-side-danger { background: #ef4444; border-color: #ef4444; color: #fff; }
+.mjc-side-btn.mjc-side-danger:hover { background: #dc2626; color: #fff; }
+.mjc-account-main { background: var(--mjc-card); border: 1px solid var(--mjc-border); border-radius: 18px; padding: 28px 30px; }
+.mjc-welcome-title { color: #e11d48; font-size: 1.35rem; margin: 0 0 10px; }
+.mjc-welcome-sub { color: #2563eb; font-size: 1.02rem; margin: 22px 0 8px; }
+.mjc-welcome-text { line-height: 2.1; color: var(--mjc-text); }
+.mjc-explain { margin: 0; padding-right: 18px; line-height: 2.2; }
+.mjc-explain li { margin-bottom: 4px; }
+
+/* فرم «تکمیل اطلاعات کاربر» */
+.mjc-profile-head { font-size: 1.15rem; text-align: center; color: var(--mjc-primary-dark); margin-bottom: 16px; }
+.mjc-form-title { margin: 18px 0 12px; font-size: 1.05rem; }
+.mjc-req-label { margin: 16px 0 8px; font-weight: 700; font-size: .92rem; }
+.mjc-req-label em { color: #e11d48; font-style: normal; font-size: .8rem; font-weight: 500; }
+.mjc-birth { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 380px; }
+.mjc-form-note { color: var(--mjc-muted); font-size: .82rem; margin: 14px 0 4px; }
+.mjc-points-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 10px 0 6px; }
+.mjc-points-cell { background: #fff; border: 1px solid var(--mjc-border); border-radius: 14px; padding: 14px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
+.mjc-points-cell-num { font-size: 1.55rem; font-weight: 800; color: var(--mjc-primary-dark); }
+.mjc-points-cell-label { color: var(--mjc-muted); font-size: .82rem; }
+
+/* گرید جوایز — دایره‌های طلایی مطابق ماکت */
+.mjc-rewards-title { font-size: 1.3rem; margin-bottom: 6px; }
+.mjc-prize-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px 14px; margin: 26px 6px 10px; }
+.mjc-prize { display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; text-align: center; }
+.mjc-prize input { position: absolute; opacity: 0; pointer-events: none; }
+.mjc-prize-circle {
+	position: relative; width: 128px; height: 128px; border-radius: 50%;
+	background: radial-gradient(circle at 32% 28%, #ffe9a8, #d4a017 55%, #a16207);
+	box-shadow: 0 6px 16px rgba(161, 98, 7, .35), inset 0 0 0 6px rgba(255, 255, 255, .35);
+	display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
+	transition: transform .15s ease, box-shadow .15s ease;
+}
+.mjc-prize:hover .mjc-prize-circle { transform: translateY(-3px); }
+.mjc-prize-icon { font-size: 2.5rem; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .25)); }
+.mjc-prize-img { width: 58px; height: 58px; object-fit: cover; border-radius: 10px; }
+.mjc-prize-num { position: absolute; bottom: 20px; right: 0; left: 0; text-align: center; font-size: 1.55rem; color: #fff; text-shadow: 0 2px 4px rgba(0, 0, 0, .55); font-weight: 800; }
+.mjc-prize-circle i { position: absolute; bottom: 6px; right: 0; left: 0; text-align: center; font-style: normal; font-size: .72rem; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.mjc-prize-check {
+	position: absolute; top: -4px; left: -4px; width: 34px; height: 34px; border-radius: 50%;
+	background: #2f7df6; color: #fff; display: none; align-items: center; justify-content: center;
+	font-size: 1.05rem; box-shadow: 0 3px 8px rgba(47, 125, 246, .5);
+}
+.mjc-prize input:checked ~ .mjc-prize-circle { box-shadow: 0 0 0 4px #2f7df6, 0 6px 16px rgba(47, 125, 246, .4); }
+.mjc-prize input:checked ~ .mjc-prize-circle .mjc-prize-check { display: flex; }
+.mjc-prize input:checked ~ .mjc-prize-name { color: #2f7df6; font-weight: 700; }
+.mjc-prize-name { font-size: .85rem; color: var(--mjc-text); }
+.mjc-prize-off { opacity: .55; cursor: not-allowed; }
+.mjc-prize-off:hover .mjc-prize-circle { transform: none; }
+
+@media (max-width: 900px) {
+	.mjc-account-wrap { grid-template-columns: 1fr; }
+	.mjc-prize-grid { grid-template-columns: repeat(3, 1fr); }
+	.mjc-birth, .mjc-points-strip { grid-template-columns: 1fr 1fr; }
+}
