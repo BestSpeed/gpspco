@@ -167,19 +167,32 @@ class MJC_Admin {
 				mjc_update_settings( array( 'grade_levels' => $levels ) );
 				self::redirect( 'mjc-grades', 'سطوح پایه فنی ذخیره شد.' );
 			}
-			if ( 'project_meta' === $form && current_user_can( 'mjc_manage_projects' ) && wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce'] ?? '' ) ), 'mjc_project_meta' ) ) {
+			if ( 'project_approve_form' === $form && current_user_can( 'mjc_manage_projects' ) && wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce'] ?? '' ) ), 'mjc_project_approve' ) ) {
 				$pid    = (int) ( $_POST['project_id'] ?? 0 );
 				$amount = (int) mjc_to_en_digits( str_replace( array( ',', '،' ), '', (string) wp_unslash( $_POST['project_amount'] ?? '0' ) ) );
 				$area   = (float) mjc_to_en_digits( (string) wp_unslash( $_POST['project_area'] ?? '0' ) );
-				if ( $pid && $amount >= 0 ) {
-					$data = array( 'amount' => $amount, 'updated_at' => current_time( 'mysql' ) );
-					if ( $area > 0 ) {
-						$data['area'] = $area;
-					}
-					MJC_DB::update( 'projects', $data, array( 'id' => $pid ) );
-					MJC_Audit::log( 'project_meta_saved', 'project', $pid, 'مبلغ/متراژ پروژه توسط مدیر ثبت شد.' );
-					self::redirect( 'mjc-projects', 'مبلغ پروژه ذخیره شد.' );
+				$mode   = mjc_get_setting( 'project_points_mode', 'fixed' );
+				if ( ! $pid ) {
+					self::redirect( 'mjc-projects', 'پروژه یافت نشد.' );
 				}
+				if ( 'amount' === $mode && $amount <= 0 ) {
+					self::redirect( 'mjc-projects', 'برای محاسبه امتیاز بر اساس قیمت، وارد کردن مبلغ پروژه در زمان تأیید الزامی است.' );
+				}
+				if ( 'area' === $mode && $area <= 0 ) {
+					self::redirect( 'mjc-projects', 'برای محاسبه امتیاز بر اساس متراژ، وارد کردن متراژ پروژه الزامی است.' );
+				}
+				// مبلغ/متراژ در لحظه‌ی تأیید توسط مدیر سایت ثبت می‌شود.
+				$data = array( 'updated_at' => current_time( 'mysql' ) );
+				if ( $amount > 0 ) {
+					$data['amount'] = $amount;
+				}
+				if ( $area > 0 ) {
+					$data['area'] = $area;
+				}
+				MJC_DB::update( 'projects', $data, array( 'id' => $pid ) );
+				MJC_Audit::log( 'project_amount_set', 'project', $pid, 'مبلغ/متراژ پروژه در زمان تأیید توسط مدیر ثبت شد.' );
+				MJC_Projects::set_status( $pid, 'approved' );
+				self::redirect( 'mjc-projects', 'پروژه تأیید و امتیاز اعمال شد.' );
 			}
 		}
 
@@ -523,15 +536,16 @@ class MJC_Admin {
 				'owner'   => esc_html( ( $p->full_name ? $p->full_name : '—' ) . ' (' . MJC_SMS::pretty_mobile( $p->mobile ) . ')' ),
 				'type'    => esc_html( MJC_Projects::type_label( $p->project_type ) ),
 				'units'   => esc_html( mjc_num( $p->units ) ),
-				'amount'  => '<form method="post" style="margin:0">' . wp_nonce_field( 'mjc_project_meta', '_wpnonce', true, false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					. '<input type="hidden" name="mjc_admin_form" value="project_meta" /><input type="hidden" name="project_id" value="' . esc_attr( $p->id ) . '" />'
-					. '<label style="display:inline-flex;align-items:center;gap:4px">مبلغ (ریال): <input type="text" name="project_amount" value="' . esc_attr( $p->amount ) . '" style="width:110px" /></label> '
-					. '<label style="display:inline-flex;align-items:center;gap:4px">متراژ: <input type="text" name="project_area" value="' . esc_attr( $p->area ) . '" style="width:70px" /></label> '
-					. '<button type="submit" class="button">ذخیره</button></form>'
-					. '<span class="description">مبلغ پروژه توسط مدیر تعیین می‌شود</span>',
+				'amount'  => ( $p->amount > 0 ? esc_html( mjc_money( $p->amount ) ) . ' ریال' : '<em>—</em>' ) . '<br />' . ( $p->area > 0 ? esc_html( mjc_num( $p->area ) ) . ' متر' : '' ) . '<br /><span class="description">مبلغ پروژه در زمان تأیید توسط مدیر تعیین می‌شود</span>',
 				'date'    => esc_html( mjc_date( $p->created_at, false ) ),
 				'status'  => esc_html( mjc_status_label( $p->status ) ) . ( 'approved' === $p->status ? '<br /><span class="description">+' . esc_html( mjc_num( $p->points_awarded ) ) . ' امتیاز</span>' : '' ),
-				'actions' => ( 'approved' !== $p->status ? MJC_Admin::action_btn( 'project_approve', $p->id, 'تأیید (' . MJC_Projects::calculate_points( $p ) . ' امتیاز)' ) : '' )
+				'actions' => ( 'approved' !== $p->status
+					? '<form method="post" style="margin:0 0 6px">' . wp_nonce_field( 'mjc_project_approve', '_wpnonce', true, false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						. '<input type="hidden" name="mjc_admin_form" value="project_approve_form" /><input type="hidden" name="project_id" value="' . esc_attr( $p->id ) . '" />'
+						. '<label style="display:block;margin-bottom:4px">مبلغ (ریال): <input type="text" name="project_amount" value="' . esc_attr( $p->amount ) . '" style="width:110px" /></label>'
+						. '<label style="display:block;margin-bottom:6px">متراژ: <input type="text" name="project_area" value="' . esc_attr( $p->area ) . '" style="width:70px" /></label>'
+						. '<button type="submit" class="button button-primary">تأیید و اعمال امتیاز</button></form>'
+					: '' )
 					. ( 'rejected' !== $p->status ? MJC_Admin::action_btn( 'project_reject', $p->id, 'رد', 'button-secondary', array( 'reason' => 'مغایرت با شرایط ثبت پروژه' ) ) : '' ),
 			);
 		};
@@ -781,14 +795,14 @@ class MJC_Admin {
 		echo '<tr><th>تأیید ثبت‌نام</th><td><select name="registration_approval"><option value="manual" ' . selected( $s['registration_approval'], 'manual', false ) . '>دستی توسط مدیر</option><option value="auto" ' . selected( $s['registration_approval'], 'auto', false ) . '>خودکار</option></select></td></tr>';
 		echo '<tr><th>حداقل مبلغ برداشت (ریال)</th><td><input type="number" name="wallet_withdraw_min" value="' . esc_attr( $s['wallet_withdraw_min'] ) . '" /></td></tr></table>';
 
-		echo '<h2>امتیازدهی پروژه‌ها</h2><table class="form-table">';
+		echo '<h2>امتیازدهی پروژه‌ها</h2><p class="description">مدیر سایت مشخص می‌کند امتیاز هر پروژه‌ی تأییدشده بر اساس «قیمت (مبلغ)» محاسبه شود یا «متراژ»، و میزان امتیاز هر یک را تعیین می‌کند. مبلغ پروژه نیز در لحظه‌ی تأیید توسط مدیر وارد می‌شود.</p><table class="form-table">';
 		echo '<tr><th>محاسبه امتیاز هر پروژه</th><td><select name="project_points_mode">';
 		echo '<option value="fixed" ' . selected( $s['project_points_mode'], 'fixed', false ) . '>ثابت (مطابق قوانین امتیاز)</option>';
 		echo '<option value="area" ' . selected( $s['project_points_mode'], 'area', false ) . '>بر اساس متراژ</option>';
-		echo '<option value="amount" ' . selected( $s['project_points_mode'], 'amount', false ) . '>بر اساس مبلغ پروژه</option>';
+		echo '<option value="amount" ' . selected( $s['project_points_mode'], 'amount', false ) . '>بر اساس قیمت (مبلغ پروژه)</option>';
 		echo '</select></td></tr>';
-		echo '<tr><th>امتیاز به ازای هر متر مربع</th><td><input type="number" step="0.5" name="points_per_meter" value="' . esc_attr( $s['points_per_meter'] ) . '" /></td></tr>';
-		echo '<tr><th>امتیاز به ازای هر ۱۰ میلیون ریال</th><td><input type="number" step="0.5" name="points_per_10m" value="' . esc_attr( $s['points_per_10m'] ) . '" /></td></tr>';
+		echo '<tr><th>میزان امتیاز به ازای هر متر مربع (متراژ پروژه)</th><td><input type="number" step="0.5" name="points_per_meter" value="' . esc_attr( $s['points_per_meter'] ) . '" /></td></tr>';
+		echo '<tr><th>میزان امتیاز به ازای هر ۱۰ میلیون ریال (قیمت پروژه)</th><td><input type="number" step="0.5" name="points_per_10m" value="' . esc_attr( $s['points_per_10m'] ) . '" /></td></tr>';
 		echo '<tr><th>سقف امتیاز هر پروژه (۰ = بدون سقف)</th><td><input type="number" name="project_points_max" value="' . esc_attr( $s['project_points_max'] ) . '" /></td></tr></table>';
 
 		echo '<h2>پیامک</h2><table class="form-table">';
