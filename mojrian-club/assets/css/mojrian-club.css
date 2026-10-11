@@ -459,3 +459,40 @@
 	.mjc-prize-grid { grid-template-columns: repeat(3, 1fr); }
 	.mjc-birth, .mjc-points-strip { grid-template-columns: 1fr 1fr; }
 }
+
+/* ======== فرم «تکمیل اطلاعات کاربران» مطابق ماکت ======== */
+.mjc-points-pill {
+	display: inline-flex; align-items: center; gap: 6px;
+	background: #eef2ff; color: var(--mjc-primary-dark); border: 1px solid #c7d2fe;
+	border-radius: 999px; padding: 8px 18px; font-size: .9rem; margin-bottom: 4px;
+}
+.mjc-mf-title { font-size: 1.05rem; margin: 14px 0 6px; }
+.mjc-mock-form { max-width: 760px; }
+.mjc-mock-form .mjc-mf-label { margin: 22px 0 8px; font-weight: 700; font-size: .92rem; }
+.mjc-mock-form .mjc-mf-label em { color: #e11d48; font-style: normal; font-size: .8rem; font-weight: 500; margin-right: 6px; }
+.mjc-mf-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.mjc-mf-row.mjc-mf-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.mjc-mf-row.mjc-mf-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+.mjc-mf-col { display: flex; flex-direction: column; gap: 6px; }
+.mjc-mf-col > label { font-size: .85rem; color: var(--mjc-text); }
+.mjc-mf-hint { margin: 0 0 2px; font-size: .78rem; color: var(--mjc-muted); line-height: 1.9; }
+.mjc-mock-form input[type="text"],
+.mjc-mock-form input[type="tel"],
+.mjc-mock-form select,
+.mjc-mock-form textarea {
+	width: 100%; max-width: 100%; padding: 9px 12px; border: 1px solid #94a3b8;
+	border-radius: 4px; background: #fff; font-family: inherit; font-size: .92rem;
+}
+.mjc-mock-form input.mjc-mf-narrow { max-width: 340px; }
+.mjc-mock-form textarea { resize: vertical; }
+.mjc-mock-form .mjc-birth { display: flex; gap: 12px; justify-content: flex-start; max-width: none; }
+.mjc-bc { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mjc-bc select { width: 96px; text-align: center; }
+.mjc-bc span { font-size: .78rem; color: var(--mjc-muted); }
+.mjc-mock-form .mjc-actions { display: flex; justify-content: flex-end; padding-top: 18px; }
+.mjc-mock-form .mjc-actions .mjc-btn { border-radius: 4px; padding: 9px 22px; }
+
+@media (max-width: 720px) {
+	.mjc-mf-row.mjc-mf-2, .mjc-mf-row.mjc-mf-3 { grid-template-columns: 1fr; }
+	.mjc-mock-form .mjc-birth { flex-wrap: wrap; }
+}

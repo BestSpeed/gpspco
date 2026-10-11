@@ -626,7 +626,7 @@ class MJC_Shortcodes {
 		for ( $i = 1; $i <= 31; $i++ ) {
 			$days[ $i ] = $i;
 		}
-		for ( $i = (int) mjc_jdate( 'Y' ); $i >= 1320; $i-- ) {
+		for ( $i = (int) explode( '/', mjc_date( current_time( 'mysql' ), false, false ) )[0]; $i >= 1320; $i-- ) {
 			$years[ $i ] = $i;
 		}
 
@@ -634,53 +634,89 @@ class MJC_Shortcodes {
 		echo '<div class="mjc-card">';
 		echo '<h1 class="mjc-profile-head">برای ارسال دقیق بسته‌های پستی، لطفاً اطلاعات شخصی خود را کامل نمایید.</h1>';
 
-		// نمایش امتیاز مجری (مطابق درخواست کارفرما).
-		echo '<div class="mjc-points-strip">';
-		echo '<div class="mjc-points-cell"><span class="mjc-points-cell-num">' . esc_html( mjc_num( number_format( (float) $balance ) ) ) . '</span><span class="mjc-points-cell-label">میزان امتیاز شما</span></div>';
-		echo '<div class="mjc-points-cell"><span class="mjc-points-cell-num">' . esc_html( mjc_num( (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'projects' ) . " WHERE user_id = %d", array( $user_id ) ) ) ) . '</span><span class="mjc-points-cell-label">پروژه‌های ثبت‌شده</span></div>';
-		echo '<div class="mjc-points-cell"><span class="mjc-points-cell-num">' . esc_html( mjc_num( (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'reward_requests' ) . " WHERE user_id = %d AND status IN ('approved','shipped')", array( $user_id ) ) ) ) . '</span><span class="mjc-points-cell-label">جوایز دریافتی</span></div>';
-		echo '</div>';
+		// نمایش امتیاز مجری — نوار جمع‌وجور (نمایش امتیاز در پروفایل طبق درخواست).
+		echo '<div class="mjc-points-pill">امتیاز شما : <b>' . esc_html( mjc_num( number_format( (float) $balance ) ) ) . '</b> ' . esc_html( mjc_get_setting( 'points_label', 'امتیاز' ) ) . '</div>';
 
-		echo '<h2 class="mjc-form-title">تکمیل اطلاعات کاربران</h2>';
+		echo '<h2 class="mjc-mf-title">تکمیل اطلاعات کاربران</h2>';
 		echo self::form_open( 'profile', 'mjc_profile' );
+		echo '<div class="mjc-mock-form" dir="rtl">';
 
-		echo '<div class="mjc-req-label">نام و نام خانوادگی <em>(ضروری)</em></div>';
-		echo '<div class="mjc-grid mjc-grid-2">';
-		echo self::field( array( 'name' => 'first_name', 'label' => 'نام', 'value' => $member->first_name, 'required' => true ) );
-		echo self::field( array( 'name' => 'last_name', 'label' => 'نام خانوادگی', 'value' => $member->last_name, 'required' => true ) );
+		// نام و نام خانوادگی — دو فیلد کنار هم (نام در سمت راست).
+		echo '<div class="mjc-mf-label">نام و نام خانوادگی <em>(ضروری)</em></div>';
+		echo '<div class="mjc-mf-row mjc-mf-2">';
+		echo '<div class="mjc-mf-col"><label for="f_first_name">نام</label><input type="text" name="first_name" id="f_first_name" value="' . esc_attr( $member->first_name ) . '" required /></div>';
+		echo '<div class="mjc-mf-col"><label for="f_last_name">نام خانوادگی</label><input type="text" name="last_name" id="f_last_name" value="' . esc_attr( $member->last_name ) . '" required /></div>';
 		echo '</div>';
 
-		echo self::field( array( 'name' => 'national_code', 'label' => 'کد ملی', 'value' => $member->national_code, 'required' => true ) );
+		// کد ملی — ورودی باریک راست‌چین.
+		echo '<div class="mjc-mf-label">کد ملی <em>(ضروری)</em></div>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="national_code" inputmode="numeric" value="' . esc_attr( $member->national_code ) . '" required /></div>';
 
-		echo '<div class="mjc-req-label">شماره موبایل <em>(ضروری)</em></div>';
-		echo '<div class="mjc-grid mjc-grid-2">';
-		echo self::field( array( 'name' => 'mobile', 'label' => 'لطفاً شماره موبایلی که ثبت‌نام کرده‌اید را وارد کنید', 'type' => 'tel', 'value' => $member->mobile, 'required' => true ) );
-		echo self::field( array( 'name' => 'referrer_mobile', 'label' => 'لطفاً شماره موبایل معرف خود را وارد نمایید', 'type' => 'tel', 'value' => $member->referrer_mobile ) );
+		// شماره موبایل + شماره موبایل معرف — دو ستون با برچسب و راهنمای جدا.
+		echo '<div class="mjc-mf-row mjc-mf-2">';
+		echo '<div class="mjc-mf-col"><div class="mjc-mf-label">شماره موبایل <em>(ضروری)</em></div>';
+		echo '<p class="mjc-mf-hint">لطفا شماره موبایلی که ثبت نام کرده اید را وارد کنید</p>';
+		echo '<input type="tel" name="mobile" value="' . esc_attr( $member->mobile ) . '" required /></div>';
+		echo '<div class="mjc-mf-col"><div class="mjc-mf-label">شماره موبایل معرف</div>';
+		echo '<p class="mjc-mf-hint">لطفا شماره موبایل معرف خود را وارد نمایید</p>';
+		echo '<input type="tel" name="referrer_mobile" value="' . esc_attr( $member->referrer_mobile ) . '" /></div>';
 		echo '</div>';
 
-		echo '<div class="mjc-req-label">تاریخ تولد <em>(ضروری)</em></div>';
+		// تاریخ تولد — سه سلکت کوچک با برچسب زیر آن‌ها.
+		echo '<div class="mjc-mf-label">تاریخ تولد <em>(ضروری)</em></div>';
 		echo '<div class="mjc-birth">';
-		echo self::field( array( 'name' => 'birth_day', 'label' => 'روز', 'type' => 'select', 'options' => $days, 'value' => $member->birth_day, 'required' => true ) );
-		echo self::field( array( 'name' => 'birth_month', 'label' => 'ماه', 'type' => 'select', 'options' => $months, 'value' => $member->birth_month, 'required' => true ) );
-		echo self::field( array( 'name' => 'birth_year', 'label' => 'سال', 'type' => 'select', 'options' => $years, 'value' => $member->birth_year, 'required' => true ) );
+		echo '<div class="mjc-bc"><select name="birth_day" required><option value="">روز</option>';
+		for ( $i = 1; $i <= 31; $i++ ) {
+			echo '<option value="' . esc_attr( $i ) . '"' . selected( (string) $member->birth_day, (string) $i, false ) . '>' . esc_html( mjc_num( $i ) ) . '</option>';
+		}
+		echo '</select><span>روز</span></div>';
+		echo '<div class="mjc-bc"><select name="birth_month" required><option value="">ماه</option>';
+		foreach ( $months as $mv => $mt ) {
+			if ( '' === $mv ) {
+				continue;
+			}
+			echo '<option value="' . esc_attr( $mv ) . '"' . selected( (string) $member->birth_month, (string) $mv, false ) . '>' . esc_html( $mt ) . '</option>';
+		}
+		echo '</select><span>ماه</span></div>';
+		echo '<div class="mjc-bc"><select name="birth_year" required><option value="">سال</option>';
+		foreach ( $years as $yv => $yt ) {
+			if ( '' === $yv ) {
+				continue;
+			}
+			echo '<option value="' . esc_attr( $yv ) . '"' . selected( (string) $member->birth_year, (string) $yv, false ) . '>' . esc_html( mjc_num( $yv ) ) . '</option>';
+		}
+		echo '</select><span>سال</span></div>';
 		echo '</div>';
 
-		echo self::field( array(
-			'name' => 'nationality', 'label' => 'ملیت', 'type' => 'select', 'required' => true, 'value' => ( $member->nationality ? $member->nationality : 'ایران' ),
-			'options' => array( 'ایران' => 'ایران', 'سایر' => 'سایر' ),
-		) );
-		echo '<div class="mjc-grid mjc-grid-2">';
-		echo self::field( array( 'name' => 'province', 'label' => 'استان', 'value' => $member->province, 'required' => true ) );
-		echo self::field( array( 'name' => 'city', 'label' => 'شهر', 'value' => $member->city, 'required' => true ) );
+		// ملیت / استان / شهر — سه ستون.
+		$provinces = array( 'آذربایجان شرقی', 'آذربایجان غربی', 'اردبیل', 'اصفهان', 'البرز', 'ایلام', 'بوشهر', 'تهران', 'چهارمحال و بختیاری', 'خراسان جنوبی', 'خراسان رضوی', 'خراسان شمالی', 'خوزستان', 'زنجان', 'سمنان', 'سیستان و بلوچستان', 'فارس', 'قزوین', 'قم', 'کردستان', 'کرمان', 'کرمانشاه', 'کهگیلویه و بویراحمد', 'گلستان', 'گیلان', 'لرستان', 'مازندران', 'مرکزی', 'هرمزگان', 'همدان', 'یزد' );
+		echo '<div class="mjc-mf-row mjc-mf-3">';
+		echo '<div class="mjc-mf-col"><div class="mjc-mf-label">ملیت <em>(ضروری)</em></div>';
+		echo '<select name="nationality" required><option value="ایران"' . selected( (string) ( $member->nationality ? $member->nationality : 'ایران' ), 'ایران', false ) . '>ایران</option><option value="سایر"' . selected( (string) $member->nationality, 'سایر', false ) . '>سایر</option></select></div>';
+		echo '<div class="mjc-mf-col"><div class="mjc-mf-label">استان <em>(ضروری)</em></div>';
+		echo '<select name="province" required><option value="">انتخاب کنید</option>';
+		foreach ( $provinces as $pv ) {
+			echo '<option value="' . esc_attr( $pv ) . '"' . selected( (string) $member->province, $pv, false ) . '>' . esc_html( $pv ) . '</option>';
+		}
+		echo '</select></div>';
+		echo '<div class="mjc-mf-col"><div class="mjc-mf-label">شهر <em>(ضروری)</em></div>';
+		echo '<input type="text" name="city" value="' . esc_attr( $member->city ) . '" required /></div>';
 		echo '</div>';
-		echo self::field( array( 'name' => 'address', 'label' => 'نشانی', 'value' => $member->address, 'required' => true ) );
 
-		echo '<p class="mjc-form-note">برای ارسال بسته‌های پستی</p>';
-		echo self::field( array( 'name' => 'work_address', 'label' => 'نشانی دقیق محل کار با کدپستی', 'value' => $member->work_address ) );
-		echo self::field( array( 'name' => 'postal_code', 'label' => 'کد پستی', 'value' => $member->postal_code ) );
+		// نشانی.
+		echo '<div class="mjc-mf-label">نشانی <em>(ضروری)</em></div>';
+		echo '<div class="mjc-mf-row"><textarea name="address" rows="3" required>' . esc_textarea( $member->address ) . '</textarea></div>';
+
+		// اطلاعات پستی.
+		echo '<p class="mjc-form-note">برای ارسال بسته های پستی</p>';
+		echo '<div class="mjc-mf-label">نشانی دقیق محل کار با کدپستی</div>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="work_address" value="' . esc_attr( $member->work_address ) . '" /></div>';
+		echo '<div class="mjc-mf-label">کد پستی</div>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="postal_code" inputmode="numeric" value="' . esc_attr( $member->postal_code ) . '" /></div>';
 
 		echo self::form_close( 'ارسال اطلاعات' );
 		echo '</div>';
+
 		return self::member_layout( ob_get_clean() );
 	}
 
@@ -856,7 +892,7 @@ class MJC_Shortcodes {
 		if ( $rows ) {
 			echo '<div class="mjc-table-wrap"><table class="mjc-table"><thead><tr><th>جایزه</th><th>تاریخ</th><th>وضعیت</th></tr></thead><tbody>';
 			foreach ( $rows as $r ) {
-				echo '<tr><td>' . esc_html( (string) $r->reward_title ) . '</td><td>' . esc_html( mjc_num( mjc_jdate( 'Y/m/d', strtotime( $r->created_at ) ) ) ) . '</td><td>' . self::badge( $r->status ) . '</td></tr>';
+				echo '<tr><td>' . esc_html( (string) $r->reward_title ) . '</td><td>' . esc_html( mjc_num( mjc_date( $r->created_at, false ) ) ) . '</td><td>' . self::badge( $r->status ) . '</td></tr>';
 			}
 			echo '</tbody></table></div>';
 		} else {
