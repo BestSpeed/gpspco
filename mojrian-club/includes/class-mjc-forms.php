@@ -220,7 +220,7 @@ class MJC_Forms {
 			'last_name'        => $last,
 			'national_code'    => $ncode,
 			'mobile'           => $mobile,
-			'referrer_mobile'  => $ref_mob,
+			'referrer_mobile'  => $ref_mob ? $ref_mob : '',
 			'birth_day'        => $bday,
 			'birth_month'      => $bmonth,
 			'birth_year'       => $byear,
@@ -232,7 +232,6 @@ class MJC_Forms {
 			'work_address'     => $work,
 			'postal_code'      => preg_replace( '/[^0-9]/', '', $postal ),
 			'workshop_address' => $work,
-			'profile_completed' => 1,
 		);
 		MJC_Members::upsert( $user_id, $data );
 		if ( ! empty( $data['full_name'] ) ) {
