@@ -167,6 +167,20 @@ class MJC_Admin {
 				mjc_update_settings( array( 'grade_levels' => $levels ) );
 				self::redirect( 'mjc-grades', 'سطوح پایه فنی ذخیره شد.' );
 			}
+			if ( 'project_meta' === $form && current_user_can( 'mjc_manage_projects' ) && wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce'] ?? '' ) ), 'mjc_project_meta' ) ) {
+				$pid    = (int) ( $_POST['project_id'] ?? 0 );
+				$amount = (int) mjc_to_en_digits( str_replace( array( ',', '،' ), '', (string) wp_unslash( $_POST['project_amount'] ?? '0' ) ) );
+				$area   = (float) mjc_to_en_digits( (string) wp_unslash( $_POST['project_area'] ?? '0' ) );
+				if ( $pid && $amount >= 0 ) {
+					$data = array( 'amount' => $amount, 'updated_at' => current_time( 'mysql' ) );
+					if ( $area > 0 ) {
+						$data['area'] = $area;
+					}
+					MJC_DB::update( 'projects', $data, array( 'id' => $pid ) );
+					MJC_Audit::log( 'project_meta_saved', 'project', $pid, 'مبلغ/متراژ پروژه توسط مدیر ثبت شد.' );
+					self::redirect( 'mjc-projects', 'مبلغ پروژه ذخیره شد.' );
+				}
+			}
 		}
 
 		// اکشن‌های GET با nonce.
@@ -509,7 +523,12 @@ class MJC_Admin {
 				'owner'   => esc_html( ( $p->full_name ? $p->full_name : '—' ) . ' (' . MJC_SMS::pretty_mobile( $p->mobile ) . ')' ),
 				'type'    => esc_html( MJC_Projects::type_label( $p->project_type ) ),
 				'units'   => esc_html( mjc_num( $p->units ) ),
-				'amount'  => ( $p->amount > 0 ? esc_html( mjc_money( $p->amount ) ) . ' ریال' : '—' ) . '<br />' . ( $p->area > 0 ? esc_html( mjc_num( $p->area ) ) . ' متر' : '' ),
+				'amount'  => '<form method="post" style="margin:0">' . wp_nonce_field( 'mjc_project_meta', '_wpnonce', true, false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					. '<input type="hidden" name="mjc_admin_form" value="project_meta" /><input type="hidden" name="project_id" value="' . esc_attr( $p->id ) . '" />'
+					. '<label style="display:inline-flex;align-items:center;gap:4px">مبلغ (ریال): <input type="text" name="project_amount" value="' . esc_attr( $p->amount ) . '" style="width:110px" /></label> '
+					. '<label style="display:inline-flex;align-items:center;gap:4px">متراژ: <input type="text" name="project_area" value="' . esc_attr( $p->area ) . '" style="width:70px" /></label> '
+					. '<button type="submit" class="button">ذخیره</button></form>'
+					. '<span class="description">مبلغ پروژه توسط مدیر تعیین می‌شود</span>',
 				'date'    => esc_html( mjc_date( $p->created_at, false ) ),
 				'status'  => esc_html( mjc_status_label( $p->status ) ) . ( 'approved' === $p->status ? '<br /><span class="description">+' . esc_html( mjc_num( $p->points_awarded ) ) . ' امتیاز</span>' : '' ),
 				'actions' => ( 'approved' !== $p->status ? MJC_Admin::action_btn( 'project_approve', $p->id, 'تأیید (' . MJC_Projects::calculate_points( $p ) . ' امتیاز)' ) : '' )

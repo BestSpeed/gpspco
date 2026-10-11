@@ -304,7 +304,6 @@ class MJC_Forms {
 		$floors = isset( $_POST['floors'] ) ? (int) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['floors'] ) ) ) : 0;
 		$units  = isset( $_POST['units'] ) ? (int) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['units'] ) ) ) : 0;
 		$area   = isset( $_POST['area'] ) ? (float) mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['area'] ) ) ) : 0;
-		$amount = isset( $_POST['amount'] ) ? (int) mjc_to_en_digits( str_replace( array( ',', '،' ), '', (string) wp_unslash( $_POST['amount'] ) ) ) : 0;
 		$accept = ! empty( $_POST['accept_rules'] );
 		// phpcs:enable
 
@@ -320,9 +319,6 @@ class MJC_Forms {
 		}
 		if ( $area <= 0 ) {
 			$errors[] = 'متراژ کل مساحت پروژه را وارد کنید.';
-		}
-		if ( $amount <= 0 ) {
-			$errors[] = 'مبلغ پروژه را وارد کنید.';
 		}
 		if ( ! $accept ) {
 			$errors[] = 'تأیید مقررات الزامی است.';
@@ -382,7 +378,6 @@ class MJC_Forms {
 			'floors'       => $floors,
 			'units'        => $units,
 			'area'         => $area,
-			'amount'       => $amount,
 			'images'       => $images,
 			'film_id'      => $film_ids ? (int) $film_ids[0] : 0,
 		) );

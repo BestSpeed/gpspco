@@ -758,10 +758,6 @@ class MJC_Shortcodes {
 		echo '<p class="mjc-mf-hint">' . esc_html( $num_hint ) . '</p>';
 		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="number" min="1" step="any" name="area" required /></div>';
 
-		echo '<div class="mjc-mf-label">مبلغ پروژه (ریال) <em>(ضروری)</em></div>';
-		echo '<p class="mjc-mf-hint">مبلغ کل قرارداد پروژه به ریال (برای محاسبه امتیاز بر اساس مبلغ)</p>';
-		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" inputmode="numeric" name="amount" required /></div>';
-
 		// بارگذاری تصاویر — مطابق ماکت.
 		echo '<div class="mjc-mf-label mjc-mf-upload-head">تصاویر خود را در این قسمت بارگذاری نمایید</div>';
 		$accept_note = 'انواع فایل های مجاز : jpg, jpeg, png, bmp + حداکثر اندازه فایل : ۲۰ MB';
