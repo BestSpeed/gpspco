@@ -597,7 +597,7 @@ class MJC_Shortcodes {
 		if ( $campaigns ) {
 			echo '<ul class="mjc-camp-list">';
 			foreach ( $campaigns as $c ) {
-				echo '<li><a href="' . esc_url( get_permalink( $c->ID ) ) . '">' . esc_html( $c->post_title ) . '</a></li>';
+				echo '<li><a href="' . esc_url( add_query_arg( 'mjc_campaign', (int) $c->ID, mjc_page_url( 'campaigns' ) ) ) . '">' . esc_html( $c->post_title ) . '</a></li>';
 			}
 			echo '</ul>';
 		} else {
@@ -1004,6 +1004,47 @@ class MJC_Shortcodes {
 	 * @return string
 	 */
 	public static function render_campaigns() {
+		// نمای تک‌کمپین (?mjc_campaign=ID) — بدون وابستگی به قواعد بازنویسی.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['mjc_campaign'] ) ) {
+			$cid      = (int) $_GET['mjc_campaign'];
+			$campaign = $cid ? get_post( $cid ) : null;
+			if ( ! $campaign || 'mjc_campaign' !== $campaign->post_type || 'publish' !== $campaign->post_status ) {
+				return self::member_layout( mjc_empty_state( 'کمپین موردنظر یافت نشد.' ) );
+			}
+			$active  = MJC_Campaigns::is_active( $campaign->ID );
+			$winners = MJC_Campaigns::winners( $campaign->ID );
+			ob_start();
+			echo '<a class="mjc-link-more" href="' . esc_url( mjc_page_url( 'campaigns' ) ) . '">→ بازگشت به کمپین‌ها</a>';
+			echo '<div class="mjc-card mjc-campaign' . ( $active ? '' : ' mjc-campaign-closed' ) . '">';
+			if ( has_post_thumbnail( $campaign->ID ) ) {
+				echo get_the_post_thumbnail( $campaign->ID, 'large', array( 'class' => 'mjc-reward-img' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			}
+			echo '<h2>' . esc_html( $campaign->post_title ) . '</h2>';
+			echo '<div>' . wp_kses_post( $campaign->post_content ) . '</div>';
+			$end = get_post_meta( $campaign->ID, 'mjc_end_date', true );
+			if ( $end ) {
+				echo '<p class="mjc-text-sm">مهلت: ' . esc_html( mjc_date( $end . ' 00:00:00', false ) ) . '</p>';
+			}
+			if ( $winners ) {
+				echo '<div class="mjc-winners"><strong>برندگان:</strong> ';
+				foreach ( $winners as $uid ) {
+					$u = get_userdata( $uid );
+					echo '<span class="mjc-badge mjc-badge-approved">' . esc_html( $u ? $u->display_name : '—' ) . '</span> ';
+				}
+				echo '</div>';
+			}
+			if ( $active ) {
+				echo self::form_open( 'campaign_join', 'mjc_campaign' );
+				echo '<input type="hidden" name="campaign_id" value="' . esc_attr( $campaign->ID ) . '" />';
+				echo self::form_close( 'شرکت در کمپین' );
+			} else {
+				echo '<span class="mjc-badge mjc-badge-closed">پایان‌یافته</span>';
+			}
+			echo '</div>';
+			return self::member_layout( ob_get_clean() );
+		}
+
 		$campaigns = get_posts( array( 'post_type' => 'mjc_campaign', 'post_status' => 'publish', 'numberposts' => 20 ) );
 
 		ob_start();

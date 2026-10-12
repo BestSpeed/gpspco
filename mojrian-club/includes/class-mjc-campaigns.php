@@ -19,6 +19,7 @@ class MJC_Campaigns {
 	 */
 	public static function hooks() {
 		add_action( 'init', array( __CLASS__, 'register_cpt' ) );
+		add_filter( 'template_include', array( __CLASS__, 'template' ) );
 	}
 
 	/**
@@ -40,6 +41,29 @@ class MJC_Campaigns {
 			'supports'     => array( 'title', 'editor', 'thumbnail' ),
 			'has_archive'  => false,
 		) );
+
+		// رفع ۴۰۴ لینک‌های تک‌کمپین: قواعد بازنویسی باید بعد از ثبت CPT ساخته شوند.
+		// (flush هنگام فعال‌سازی، قبل از ثبت CPT اجرا می‌شود و قواعد «campaign» را نمی‌سازد.)
+		if ( get_option( 'mjc_rewrite_flush' ) !== MJC_VERSION ) {
+			flush_rewrite_rules( false );
+			update_option( 'mjc_rewrite_flush', MJC_VERSION );
+		}
+	}
+
+	/**
+	 * قالب اختصاصی صفحه‌ی کمپین.
+	 *
+	 * @param string $template قالب فعلی.
+	 * @return string
+	 */
+	public static function template( $template ) {
+		if ( is_singular( array( 'mjc_campaign' ) ) ) {
+			$plugin_tpl = MJC_PLUGIN_DIR . 'public/templates/single-mjc_campaign.php';
+			if ( file_exists( $plugin_tpl ) ) {
+				return $plugin_tpl;
+			}
+		}
+		return $template;
 	}
 
 	/**

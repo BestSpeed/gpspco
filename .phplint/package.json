@@ -1,0 +1,6 @@
+{
+  "name": "mjc-phplint",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": { "php-wasm": "^0.2.0" }
+}
