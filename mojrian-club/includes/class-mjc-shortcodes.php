@@ -456,7 +456,7 @@ class MJC_Shortcodes {
 		}
 		ob_start();
 		echo '<div class="mjc-auth-card">';
-		echo '<h1 class="mjc-center">ورود به ' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</h1>';
+		echo '<h1 class="mjc-center mjc-page-title">ورود به ' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</h1>';
 		echo self::form_open( 'login', 'mjc_login' );
 		echo self::field( array( 'name' => 'username', 'label' => 'نام کاربری یا شماره موبایل', 'required' => true ) );
 		echo self::field( array( 'name' => 'password', 'label' => 'رمز عبور', 'type' => 'password', 'required' => true ) );
@@ -481,7 +481,7 @@ class MJC_Shortcodes {
 		// phpcs:enable
 		ob_start();
 		echo '<div class="mjc-auth-card">';
-		echo '<h1 class="mjc-center">ثبت‌نام در ' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</h1>';
+		echo '<h1 class="mjc-center mjc-page-title">ثبت‌نام در ' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</h1>';
 		echo self::form_open( 'register', 'mjc_register' );
 		echo self::field( array( 'name' => 'full_name', 'label' => 'نام و نام خانوادگی', 'required' => true ) );
 		echo self::field( array( 'name' => 'mobile', 'label' => 'شماره موبایل', 'type' => 'tel', 'required' => true, 'placeholder' => '09xxxxxxxxx' ) );
@@ -784,7 +784,7 @@ class MJC_Shortcodes {
 		if ( $show_form ) {
 			echo '<p><a class="mjc-btn mjc-btn-ghost" style="color:#334155;border-color:#cbd5e1" href="' . esc_url( $back_url ) . '">بازگشت به لیست پروژه‌ها</a></p>';
 			echo '<div class="mjc-card">';
-			echo '<h2 class="mjc-center">ثبت اطلاعات پروژه</h2>';
+			echo '<h2 class="mjc-center mjc-page-title">ثبت اطلاعات پروژه</h2>';
 			echo '<p class="mjc-center mjc-text-sm">قسمت‌هایی که با نشانه «ضروری» مشاهده می‌شود حتما کامل گردد.</p>';
 			echo self::form_open( 'project', 'mjc_project' );
 			echo '<div class="mjc-mock-form mjc-mock-wide" dir="rtl">';
@@ -849,7 +849,7 @@ class MJC_Shortcodes {
 		// نمایش لیست + دکمه ایجاد پروژه جدید.
 		list( $rows, $total ) = MJC_Projects::list_for_user( get_current_user_id(), $paged, 10 );
 		echo '<div class="mjc-card">';
-		echo '<div class="mjc-list-head"><h2>پروژه‌های ثبت‌شده</h2>';
+		echo '<div class="mjc-list-head"><h2 class="mjc-page-title">پروژه‌های ثبت‌شده</h2>';
 		echo '<a class="mjc-btn mjc-btn-green" href="' . esc_url( $new_url ) . '"><span class="mjc-plus" aria-hidden="true">+</span> ایجاد پروژه جدید</a></div>';
 		$table_rows = array();
 		foreach ( $rows as $p ) {
@@ -880,7 +880,7 @@ class MJC_Shortcodes {
 		$label  = mjc_get_setting( 'points_label', 'امتیاز' );
 
 		ob_start();
-		echo '<div class="mjc-card"><h2>تاریخچه ' . esc_html( $label ) . '</h2>';
+		echo '<div class="mjc-card"><h2 class="mjc-page-title">تاریخچه ' . esc_html( $label ) . '</h2>';
 		echo '<div class="mjc-balance">' . esc_html( $label ) . ' فعلی: <strong>' . esc_html( mjc_num( number_format( (float) ( $member ? $member->points_balance : 0 ) ) ) ) . '</strong></div>';
 		$table_rows = array();
 		foreach ( $rows as $r ) {
@@ -1105,7 +1105,7 @@ class MJC_Shortcodes {
 		$refs  = MJC_Referrals::referrals( get_current_user_id() );
 
 		ob_start();
-		echo '<div class="mjc-card"><h2>معرفی دوستان</h2>';
+		echo '<div class="mjc-card"><h2 class="mjc-page-title">معرفی دوستان</h2>';
 		echo '<p>دوستان مجری خود را به باشگاه دعوت کنید؛ پس از تأیید عضویت آن‌ها، ' . esc_html( mjc_get_setting( 'points_label', 'امتیاز' ) ) . ' پاداش بگیرید.</p>';
 		echo '<div class="mjc-referral-box"><div><span class="mjc-text-sm">کد معرف شما</span><strong>' . esc_html( mjc_num( $code ) ) . '</strong></div>';
 		echo '<input type="text" readonly value="' . esc_attr( $link ) . '" id="mjc-ref-link" onclick="this.select();" /></div>';
@@ -1133,7 +1133,7 @@ class MJC_Shortcodes {
 		$code   = $member ? 'MJC-' . str_pad( (string) $member->id, 6, '0', STR_PAD_LEFT ) : '';
 
 		ob_start();
-		echo '<div class="mjc-card"><h2>کارت عضویت دیجیتال</h2>';
+		echo '<div class="mjc-card"><h2 class="mjc-page-title">کارت عضویت دیجیتال</h2>';
 		if ( $member ) {
 			echo '<div class="mjc-member-card">';
 			echo '<div class="mjc-member-card-head">' . esc_html( mjc_get_setting( 'club_title', 'باشگاه مجریان' ) ) . '</div>';
@@ -1158,7 +1158,7 @@ class MJC_Shortcodes {
 		list( $rows, $total ) = MJC_Notify::list_for_user( get_current_user_id(), $paged, 20 );
 
 		ob_start();
-		echo '<div class="mjc-card"><div class="mjc-flex-between"><h2>اعلان‌ها</h2>';
+		echo '<div class="mjc-card"><div class="mjc-flex-between"><h2 class="mjc-page-title">اعلان‌ها</h2>';
 		echo self::form_open( 'notifications_read', 'mjc_notify' );
 		echo self::form_close( 'علامت‌گذاری همه به‌عنوان خوانده‌شده' );
 		echo '</div>';
@@ -1269,7 +1269,7 @@ class MJC_Shortcodes {
 		ob_start();
 		echo '<div class="mjc-wrap">';
 		mjc_render_notice();
-		echo '<div class="mjc-card"><h1>سوالات متداول</h1><div class="mjc-faq">';
+		echo '<div class="mjc-card"><h1 class="mjc-page-title">سوالات متداول</h1><div class="mjc-faq">';
 		foreach ( $faqs as $faq ) {
 			echo '<details class="mjc-faq-item"><summary>' . esc_html( $faq->post_title ) . '</summary>';
 			echo '<div class="mjc-faq-body">' . wp_kses_post( apply_filters( 'the_content', $faq->post_content ) ) . '</div></details>';
@@ -1292,7 +1292,7 @@ class MJC_Shortcodes {
 		ob_start();
 		echo '<div class="mjc-wrap mjc-narrow">';
 		mjc_render_notice();
-		echo '<div class="mjc-card"><h1>ارتباط با ما</h1>';
+		echo '<div class="mjc-card"><h1 class="mjc-page-title">ارتباط با ما</h1>';
 		echo self::form_open( 'ticket', 'mjc_ticket' );
 		echo self::field( array( 'name' => 'subject', 'label' => 'موضوع', 'required' => true ) );
 		echo self::field( array( 'name' => 'message', 'label' => 'متن پیام', 'type' => 'textarea', 'rows' => 6, 'required' => true ) );

@@ -27,12 +27,12 @@ get_header();
 				<span>/</span>
 				<span><?php the_title(); ?></span>
 			</nav>
-			<h1><?php the_title(); ?></h1>
 			<?php
 			if ( has_post_thumbnail() ) {
 				echo get_the_post_thumbnail( get_the_ID(), 'large', array( 'class' => 'mjc-reward-img' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 			?>
+			<h1><?php the_title(); ?></h1>
 			<div class="mjc-guide-content">
 				<?php the_content(); ?>
 			</div>

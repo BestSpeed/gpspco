@@ -796,6 +796,33 @@ t( 'guide: rewrite flush runs after ALL plugin CPT registrations', function () {
 	ok( get_option( 'mjc_rewrite_flush' ) === MJC_VERSION, 'flush version option must equal MJC_VERSION' );
 } );
 
+// 1.6.10: اندازه‌ی عنوان‌ها و جای عنوان کمپین.
+t( 'v1.6.10: campaign title is below the campaign image and 20px', function () {
+	$tpl = file_get_contents( '/plugin/public/templates/single-mjc_campaign.php' );
+	ok( strpos( $tpl, 'get_the_post_thumbnail' ) < strpos( $tpl, '<h1>' ), 'campaign title must be below the image in single template' );
+	$css = file_get_contents( '/plugin/assets/css/mojrian-club.css' );
+	contains( $css, '.mjc-campaign h1, .mjc-campaign h2, .mjc-campaign h3 { font-size: 20px; }', 'campaign titles must be 20px' );
+} );
+
+t( 'v1.6.10: guide article, login and secondary page titles are 20px', function () {
+	$css = file_get_contents( '/plugin/assets/css/mojrian-club.css' );
+	contains( $css, '.mjc-guide-article h1, .mjc-article-card h3 { font-size: 20px; }', 'guide article titles must be 20px' );
+	contains( $css, '.mjc-page-title, h1.mjc-page-title, h2.mjc-page-title { font-size: 20px; }', 'page-title class must be 20px' );
+	contains( $css, '.mjc-acc-title, .mjc-rewards-title, .mjc-profile-head { font-size: 20px; }', 'dashboard/rewards/profile titles must be 20px' );
+	// عنوان هیروی راهنمای باشگاه (صفحه‌ی اصلی) نباید ۲۰ شود.
+	not_contains( $css, '.mjc-guide-hero h1, .mjc-article-card h3', 'guide hero must not be in the 20px rule' );
+	wp_set_current_user( 0 );
+	$out = MJC_Shortcodes::render_login();
+	contains( $out, 'mjc-center mjc-page-title', 'login title must carry the 20px class' );
+	$out = MJC_Shortcodes::render_register();
+	contains( $out, 'mjc-center mjc-page-title', 'register title must carry the 20px class' );
+	wp_set_current_user( $GLOBALS['userA_id'] );
+	$out = MJC_Shortcodes::render_dashboard();
+	contains( $out, 'mjc-acc-title', 'dashboard title class present' );
+	$out = MJC_Shortcodes::render_guide();
+	not_contains( $out, 'mjc-guide-hero h1', 'guide listing keeps hero markup' );
+} );
+
 t( 'final invariants', function () {
 	eq( count( array_filter( (array) $GLOBALS['mjc_stub_sql_unknown'] ) ), 0, 'unknown SQL: ' . json_encode( $GLOBALS['mjc_stub_sql_unknown'], JSON_UNESCAPED_UNICODE ) );
 	eq( count( (array) $GLOBALS['mjc_stub_violations'] ), 0, 'column violations: ' . json_encode( $GLOBALS['mjc_stub_violations'], JSON_UNESCAPED_UNICODE ) );
