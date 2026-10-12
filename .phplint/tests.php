@@ -632,20 +632,66 @@ t( 'campaigns: dashboard links open the campaign page (no 404)', function () {
 	update_post_meta( $cid, 'mjc_end_date', '2030-01-01' );
 	wp_set_current_user( $userA_id );
 	$html = MJC_Shortcodes::render_dashboard();
-	contains( $html, 'mjc_campaign=' . (int) $cid, 'dashboard campaign link must use the campaign detail route' );
+	contains( $html, 'mjc_campaign_item=' . (int) $cid, 'dashboard campaign link must use the campaign detail route' );
+	not_contains( $html, 'mjc_campaign=', 'bare CPT query var must not be used (collision → 404)' );
 	contains( $html, 'کمپین ویژه پاییز' );
 	// نمای تک‌کمپین.
-	$_GET['mjc_campaign'] = (int) $cid;
+	$_GET['mjc_campaign_item'] = (int) $cid;
 	$html = MJC_Shortcodes::render_campaigns();
-	unset( $_GET['mjc_campaign'] );
+	unset( $_GET['mjc_campaign_item'] );
 	contains( $html, 'کمپین ویژه پاییز' );
 	contains( $html, 'بازگشت به کمپین‌ها' );
 	contains( $html, 'شرکت در کمپین' );
 	// شناسه‌ی نامعتبر.
-	$_GET['mjc_campaign'] = 999999;
+	$_GET['mjc_campaign_item'] = 999999;
+	$html = MJC_Shortcodes::render_campaigns();
+	unset( $_GET['mjc_campaign_item'] );
+	contains( $html, 'کمپین موردنظر یافت نشد.' );
+} );
+
+t( 'campaigns: legacy ?mjc_campaign=ID links still work (fallback)', function () {
+	global $userA_id;
+	$cid = wp_insert_post( array(
+		'post_type'    => 'mjc_campaign',
+		'post_status'  => 'publish',
+		'post_title'   => 'کمپین سازگاری قدیمی',
+		'post_content' => 'شرح کمپین قدیمی.',
+	) );
+	wp_set_current_user( $userA_id );
+	$_GET['mjc_campaign'] = (int) $cid; // نام قدیمیِ همنام با CPT (لینک‌های قبل از 1.6.9).
 	$html = MJC_Shortcodes::render_campaigns();
 	unset( $_GET['mjc_campaign'] );
-	contains( $html, 'کمپین موردنظر یافت نشد.' );
+	contains( $html, 'کمپین سازگاری قدیمی', 'legacy campaign query var must fall back to detail view' );
+	contains( $html, 'بازگشت به کمپین‌ها' );
+} );
+
+t( 'guard_item_query neutralizes legacy CPT query vars in main query', function () {
+	$was_admin = $GLOBALS['mjc_stub']->is_admin;
+	$GLOBALS['mjc_stub']->is_admin = false;
+	$q = new class {
+		public $qv = array();
+		public function is_main_query() { return true; }
+		public function get( $k ) { return isset( $this->qv[ $k ] ) ? $this->qv[ $k ] : ''; }
+		public function set( $k, $v ) { $this->qv[ $k ] = $v; }
+	};
+	$q->qv = array( 'mjc_campaign' => '13479', 'name' => '13479', 'post_type' => 'mjc_campaign', 'pagename' => 'کمپینها-و-قرعهکشی' );
+	MJC_Public::guard_item_query( $q );
+	eq( $q->get( 'mjc_campaign' ), '', 'legacy numeric CPT var must be cleared' );
+	eq( $q->get( 'name' ), '', 'conflicting name must be cleared' );
+	eq( $q->get( 'post_type' ), '', 'conflicting post_type must be cleared' );
+	eq( $q->get( 'pagename' ), 'کمپینها-و-قرعهکشی', 'pagename must survive so the page resolves' );
+	// مقدار نامکی (غیرعددی) نباید دست بخورد — مسیر زیبای تک‌مطلب به هسته سپرده می‌شود.
+	$q2 = new class {
+		public $qv = array();
+		public function is_main_query() { return true; }
+		public function get( $k ) { return isset( $this->qv[ $k ] ) ? $this->qv[ $k ] : ''; }
+		public function set( $k, $v ) { $this->qv[ $k ] = $v; }
+	};
+	$q2->qv = array( 'mjc_guide' => 'some-article', 'name' => 'some-article' );
+	MJC_Public::guard_item_query( $q2 );
+	eq( $q2->get( 'mjc_guide' ), 'some-article', 'slug values must be left to core' );
+	eq( $q2->get( 'name' ), 'some-article', 'slug name must survive' );
+	$GLOBALS['mjc_stub']->is_admin = $was_admin;
 } );
 
 t( 'campaigns: rewrite rules flushed after CPT registration + single template exists', function () {
@@ -709,13 +755,14 @@ t( 'member dashboard renders + has dashboard widgets', function () {
 t( 'guide: listing links are rewrite-independent (?mjc_guide=ID)', function () {
 	$gid = wp_insert_post( array( 'post_title' => 'راهنمای آزمایشی عضویت', 'post_content' => 'متن آزمایشی راهنما برای عضویت', 'post_type' => 'mjc_guide', 'post_status' => 'publish' ) );
 	$out = MJC_Shortcodes::render_guide();
-	contains( $out, 'mjc_guide=' . (int) $gid, 'guide listing must link ?mjc_guide=ID' );
+	contains( $out, 'mjc_guide_item=' . (int) $gid, 'guide listing must link ?mjc_guide_item=ID' );
+	not_contains( $out, 'mjc_guide=', 'bare CPT query var must not be used (collision → 404)' );
 	contains( $out, 'راهنمای آزمایشی عضویت', 'guide listing shows article title' );
 } );
 
 t( 'guide: ?mjc_guide=ID detail view (no 404 route)', function () {
 	$gid = wp_insert_post( array( 'post_title' => 'مقاله تفصیلی امتیاز', 'post_content' => 'جزئیات محاسبه امتیاز در متن مقاله', 'post_type' => 'mjc_guide', 'post_status' => 'publish' ) );
-	$_GET['mjc_guide'] = (string) $gid;
+	$_GET['mjc_guide_item'] = (string) $gid;
 	$out = MJC_Shortcodes::render_guide();
 	$_GET = array();
 	contains( $out, 'مقاله تفصیلی امتیاز', 'detail view shows title' );
@@ -723,8 +770,17 @@ t( 'guide: ?mjc_guide=ID detail view (no 404 route)', function () {
 	contains( $out, 'جزئیات محاسبه امتیاز در متن مقاله', 'detail view shows content' );
 } );
 
+t( 'guide: legacy ?mjc_guide=ID links still work (fallback)', function () {
+	$gid = wp_insert_post( array( 'post_title' => 'مقاله قدیمی سازگاری', 'post_content' => 'متن مقاله قدیمی', 'post_type' => 'mjc_guide', 'post_status' => 'publish' ) );
+	$_GET['mjc_guide'] = (string) $gid; // نام قدیمیِ همنام با CPT (لینک‌های قبل از 1.6.9).
+	$out = MJC_Shortcodes::render_guide();
+	$_GET = array();
+	contains( $out, 'مقاله قدیمی سازگاری', 'legacy guide query var must fall back to detail view' );
+	contains( $out, 'بازگشت به راهنمای باشگاه' );
+} );
+
 t( 'guide: unknown article id message', function () {
-	$_GET['mjc_guide'] = '999999';
+	$_GET['mjc_guide_item'] = '999999';
 	$out = MJC_Shortcodes::render_guide();
 	$_GET = array();
 	contains( $out, 'مقاله موردنظر یافت نشد.', 'unknown guide id message' );

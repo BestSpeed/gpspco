@@ -597,7 +597,7 @@ class MJC_Shortcodes {
 		if ( $campaigns ) {
 			echo '<ul class="mjc-camp-list">';
 			foreach ( $campaigns as $c ) {
-				echo '<li><a href="' . esc_url( add_query_arg( 'mjc_campaign', (int) $c->ID, mjc_page_url( 'campaigns' ) ) ) . '">' . esc_html( $c->post_title ) . '</a></li>';
+				echo '<li><a href="' . esc_url( add_query_arg( 'mjc_campaign_item', (int) $c->ID, mjc_page_url( 'campaigns' ) ) ) . '">' . esc_html( $c->post_title ) . '</a></li>';
 			}
 			echo '</ul>';
 		} else {
@@ -1004,10 +1004,18 @@ class MJC_Shortcodes {
 	 * @return string
 	 */
 	public static function render_campaigns() {
-		// نمای تک‌کمپین (?mjc_campaign=ID) — بدون وابستگی به قواعد بازنویسی.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['mjc_campaign'] ) ) {
-			$cid      = (int) $_GET['mjc_campaign'];
+		// نمای تک‌کمپین (?mjc_campaign_item=ID) — بدون وابستگی به قواعد بازنویسی.
+		// کوئری‌وارد نباید همنام پست‌تایپ باشد (تداخل با کوئری اصلی وردپرس → ۴۰۴)؛
+		// نام قدیمی mjc_campaign هم برای لینک‌های قبلی پذیرفته می‌شود.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$cid = 0;
+		if ( isset( $_GET['mjc_campaign_item'] ) ) {
+			$cid = (int) $_GET['mjc_campaign_item'];
+		} elseif ( isset( $_GET['mjc_campaign'] ) && ctype_digit( (string) wp_unslash( $_GET['mjc_campaign'] ) ) ) {
+			$cid = (int) $_GET['mjc_campaign'];
+		}
+		// phpcs:enable
+		if ( $cid ) {
 			$campaign = $cid ? get_post( $cid ) : null;
 			if ( ! $campaign || 'mjc_campaign' !== $campaign->post_type || 'publish' !== $campaign->post_status ) {
 				return self::member_layout( mjc_empty_state( 'کمپین موردنظر یافت نشد.' ) );
@@ -1179,7 +1187,8 @@ class MJC_Shortcodes {
 	 */
 	public static function render_guide() {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
-		$detail_id = isset( $_GET['mjc_guide'] ) ? (int) $_GET['mjc_guide'] : 0;
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$detail_id = isset( $_GET['mjc_guide_item'] ) ? (int) $_GET['mjc_guide_item'] : ( ( isset( $_GET['mjc_guide'] ) && ctype_digit( (string) wp_unslash( $_GET['mjc_guide'] ) ) ) ? (int) $_GET['mjc_guide'] : 0 );
 		if ( $detail_id ) {
 			$article = get_post( $detail_id );
 			if ( ! $article || 'mjc_guide' !== $article->post_type ) {
@@ -1239,7 +1248,7 @@ class MJC_Shortcodes {
 
 		echo '<div class="mjc-grid mjc-grid-2">';
 		foreach ( $articles as $article ) {
-			echo '<a class="mjc-card mjc-article-card" href="' . esc_url( add_query_arg( 'mjc_guide', (int) $article->ID, mjc_page_url( 'guide' ) ) ) . '"><h3>' . esc_html( $article->post_title ) . '</h3><p>' . esc_html( wp_trim_words( wp_strip_all_tags( $article->post_content ), 16 ) ) . '</p></a>';
+			echo '<a class="mjc-card mjc-article-card" href="' . esc_url( add_query_arg( 'mjc_guide_item', (int) $article->ID, mjc_page_url( 'guide' ) ) ) . '"><h3>' . esc_html( $article->post_title ) . '</h3><p>' . esc_html( wp_trim_words( wp_strip_all_tags( $article->post_content ), 16 ) ) . '</p></a>';
 		}
 		echo '</div>';
 		if ( ! $articles ) {

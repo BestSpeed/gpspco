@@ -184,6 +184,8 @@ def main() -> int:
                          'start_controls_tab', 'end_controls_tab', 'get_settings_for_display', 'get_settings',
                          'register_widget_type', 'register', 'add_category', 'set_icon', 'get_style_depends',
                          'get_script_depends', 'get_categories', 'get_name', 'get_title', 'get_icon'}
+    wp_query_methods = {'is_main_query', 'set', 'get_query_var', 'is_singular', 'is_page', 'is_archive',
+                        'have_posts', 'the_post', 'get_posts_found_rows', 'is_search', 'is_home'}
     exception_methods = {'getMessage', 'getCode', 'getFile', 'getLine', 'getTrace', 'getPrevious', 'getTraceAsString'}
     class_like_fn = {'__construct', '__destruct', '__toString', '__get', '__set', '__isset', '__unset',
                      '__call', '__invoke', '__clone', '__wakeup', '__sleep', '__debugInfo'}
@@ -210,7 +212,7 @@ def main() -> int:
             continue
         if fn in known_class_set:
             continue
-        if fn in builtin_fn or fn in plugin_fn or fn in harmless_fn or fn in class_like_fn or fn in elementor_methods or fn in exception_methods:
+        if fn in builtin_fn or fn in plugin_fn or fn in harmless_fn or fn in class_like_fn or fn in elementor_methods or fn in exception_methods or fn in wp_query_methods:
             continue
         if fn.startswith('MJC_Stub_'):
             continue
