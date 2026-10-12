@@ -21,6 +21,7 @@ class MJC_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
+		add_action( 'admin_head', array( __CLASS__, 'badge_css' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'notices' ) );
 	}
 
@@ -36,12 +37,54 @@ class MJC_Admin {
 	}
 
 	/**
+	 * نشان دایره‌ی قرمز شمارش (عدد سفید) — کنار سمت چپ نام منو.
+	 *
+	 * @param int $count شمارش.
+	 * @return string
+	 */
+	public static function badge( $count ) {
+		$count = (int) $count;
+		if ( $count < 1 ) {
+			return '';
+		}
+		return ' <span class="mjc-admin-badge awaiting-mod count-' . $count . '"><span class="mjc-admin-badge-num">' . esc_html( mjc_num( $count ) ) . '</span></span>';
+	}
+
+	/**
+	 * شمارش موارد در انتظار تأیید برای نشان منوها.
+	 *
+	 * @return array
+	 */
+	public static function approval_counts() {
+		$ns = MJC_Members::not_staff_sql();
+		return array(
+			'members'  => (int) MJC_DB::var( 'SELECT COUNT(*) FROM ' . mjc_table( 'members' ) . " WHERE status = 'pending'" . $ns ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'projects' => (int) MJC_DB::var( 'SELECT COUNT(*) FROM ' . mjc_table( 'projects' ) . " WHERE status = 'pending'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'grades'   => (int) MJC_DB::var( 'SELECT COUNT(*) FROM ' . mjc_table( 'grade_requests' ) . " WHERE status = 'pending'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'rewards'  => (int) MJC_DB::var( 'SELECT COUNT(*) FROM ' . mjc_table( 'reward_requests' ) . " WHERE status = 'pending'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'wallet'   => (int) MJC_DB::var( 'SELECT COUNT(*) FROM ' . mjc_table( 'wallet_transactions' ) . " WHERE type = 'withdraw' AND status = 'pending'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		);
+	}
+
+	/**
+	 * CSS نشان‌ها (در همه‌ی صفحات مدیریت).
+	 */
+	public static function badge_css() {
+		echo '<style id="mjc-admin-badge-css">'
+			. '.mjc-admin-badge{display:inline-block!important;position:static!important;min-width:18px;height:18px;line-height:18px;padding:0 5px;margin:0 4px;border-radius:9px;background:#d63638;color:#fff!important;font-size:11px;font-weight:600;text-align:center;vertical-align:middle;}'
+			. '.mjc-admin-badge .mjc-admin-badge-num{color:#fff!important;}'
+			. '</style>';
+	}
+
+	/**
 	 * منوی ادمین.
 	 */
 	public static function menu() {
+		$counts = self::approval_counts();
+		$total  = array_sum( $counts );
 		add_menu_page(
 			'باشگاه مجریان',
-			'باشگاه مجریان',
+			'باشگاه مجریان' . self::badge( $total ),
 			'read',
 			'mjc-dashboard',
 			array( __CLASS__, 'page_dashboard' ),
@@ -49,12 +92,12 @@ class MJC_Admin {
 			3
 		);
 		add_submenu_page( 'mjc-dashboard', 'داشبورد باشگاه', 'داشبورد', 'mjc_manage_club', 'mjc-dashboard', array( __CLASS__, 'page_dashboard' ) );
-		add_submenu_page( 'mjc-dashboard', 'اعضای باشگاه', 'اعضا', 'mjc_manage_members', 'mjc-members', array( __CLASS__, 'page_members' ) );
-		add_submenu_page( 'mjc-dashboard', 'پروژه‌ها', 'پروژه‌ها', 'mjc_manage_projects', 'mjc-projects', array( __CLASS__, 'page_projects' ) );
+		add_submenu_page( 'mjc-dashboard', 'اعضای باشگاه', 'اعضا' . self::badge( $counts['members'] ), 'mjc_manage_members', 'mjc-members', array( __CLASS__, 'page_members' ) );
+		add_submenu_page( 'mjc-dashboard', 'پروژه‌ها', 'پروژه‌ها' . self::badge( $counts['projects'] ), 'mjc_manage_projects', 'mjc-projects', array( __CLASS__, 'page_projects' ) );
 		add_submenu_page( 'mjc-dashboard', 'امتیازها', 'امتیازها', 'mjc_manage_points', 'mjc-points', array( __CLASS__, 'page_points' ) );
-		add_submenu_page( 'mjc-dashboard', 'پایه فنی', 'پایه فنی', 'mjc_manage_grades', 'mjc-grades', array( __CLASS__, 'page_grades' ) );
-		add_submenu_page( 'mjc-dashboard', 'درخواست‌های جایزه', 'درخواست‌های جایزه', 'mjc_manage_rewards', 'mjc-reward-requests', array( __CLASS__, 'page_reward_requests' ) );
-		add_submenu_page( 'mjc-dashboard', 'کیف پول', 'کیف پول', 'mjc_manage_wallet', 'mjc-wallet', array( __CLASS__, 'page_wallet' ) );
+		add_submenu_page( 'mjc-dashboard', 'پایه فنی', 'پایه فنی' . self::badge( $counts['grades'] ), 'mjc_manage_grades', 'mjc-grades', array( __CLASS__, 'page_grades' ) );
+		add_submenu_page( 'mjc-dashboard', 'درخواست‌های جایزه', 'درخواست‌های جایزه' . self::badge( $counts['rewards'] ), 'mjc_manage_rewards', 'mjc-reward-requests', array( __CLASS__, 'page_reward_requests' ) );
+		add_submenu_page( 'mjc-dashboard', 'کیف پول', 'کیف پول' . self::badge( $counts['wallet'] ), 'mjc_manage_wallet', 'mjc-wallet', array( __CLASS__, 'page_wallet' ) );
 		add_submenu_page( 'mjc-dashboard', 'تیکت‌ها و پیام‌ها', 'تیکت‌ها', 'mjc_manage_tickets', 'mjc-tickets', array( __CLASS__, 'page_tickets' ) );
 		add_submenu_page( 'mjc-dashboard', 'اعلان همگانی', 'اعلان همگانی', 'mjc_manage_club', 'mjc-notify', array( __CLASS__, 'page_notify' ) );
 		add_submenu_page( 'mjc-dashboard', 'گزارش‌ها', 'گزارش‌ها', 'mjc_view_reports', 'mjc-reports', array( __CLASS__, 'page_reports' ) );
@@ -322,7 +365,7 @@ class MJC_Admin {
 
 		if ( 'members' === $type ) {
 			fputcsv( $out, array( 'ID', 'نام', 'موبایل', 'کد ملی', 'استان', 'شهر', 'وضعیت', 'امتیاز', 'کیف پول', 'پایه فنی', 'تاریخ عضویت' ) );
-			$rows = MJC_DB::results( 'SELECT * FROM ' . mjc_table( 'members' ) . ' ORDER BY id DESC LIMIT 5000' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$rows = MJC_DB::results( 'SELECT * FROM ' . mjc_table( 'members' ) . ' WHERE 1=1' . MJC_Members::not_staff_sql() . ' ORDER BY id DESC LIMIT 5000' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			foreach ( (array) $rows as $r ) {
 				fputcsv( $out, array( $r->id, $r->full_name, $r->mobile, $r->national_code, $r->province, $r->city, $r->status, $r->points_balance, $r->wallet_balance, $r->grade, $r->created_at ) );
 			}
@@ -400,7 +443,7 @@ class MJC_Admin {
 
 		// آخرین اعضا.
 		echo '<div class="mjc-admin-cols"><div class="mjc-admin-box"><h2>آخرین اعضا</h2><table class="widefat striped"><thead><tr><th>نام</th><th>موبایل</th><th>وضعیت</th><th>تاریخ</th></tr></thead><tbody>';
-		$latest = MJC_DB::results( 'SELECT * FROM ' . mjc_table( 'members' ) . ' ORDER BY id DESC LIMIT 8' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$latest = MJC_DB::results( 'SELECT * FROM ' . mjc_table( 'members' ) . ' WHERE 1=1' . MJC_Members::not_staff_sql() . ' ORDER BY id DESC LIMIT 8' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		foreach ( (array) $latest as $m ) {
 			echo '<tr><td><strong>' . esc_html( MJC_Members::display_name( $m ) ) . '</strong></td><td>' . esc_html( mjc_pretty_mobile( $m->mobile ) ) . '</td><td>' . esc_html( mjc_status_label( $m->status ) ) . '</td><td>' . esc_html( mjc_date( $m->created_at, false ) ) . '</td></tr>';
 		}
@@ -444,6 +487,10 @@ class MJC_Admin {
 		// phpcs:enable
 		global $wpdb;
 		$where  = array( '1=1' );
+		$staff  = MJC_Members::staff_user_ids();
+		if ( $staff ) {
+			$where[] = 'user_id NOT IN (' . implode( ',', array_map( 'intval', $staff ) ) . ')';
+		}
 		$args   = array();
 		if ( $search ) {
 			$where[] = '(full_name LIKE %s OR mobile LIKE %s OR national_code LIKE %s)';

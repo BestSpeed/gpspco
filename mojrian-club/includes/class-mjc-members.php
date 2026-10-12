@@ -19,6 +19,106 @@ class MJC_Members {
 	 */
 	public static function hooks() {
 		add_action( 'profile_update', array( __CLASS__, 'sync_display_name' ), 10, 2 );
+		add_action( 'init', array( __CLASS__, 'maintenance' ) );
+		add_action( 'wp_login', array( __CLASS__, 'repair_admin_lockout' ) );
+	}
+
+	/**
+	 * آیا کاربر «مدیر/کاربر ارشد» باشگاه است؟
+	 * این کاربران هرگز در فهرست اعضا نمی‌آیند، نیاز به تأیید ندارند و نقش وردپرس‌شان دست نمی‌خورد.
+	 *
+	 * @param int $user_id شناسه کاربر.
+	 * @return bool
+	 */
+	public static function is_staff( $user_id ) {
+		$user_id = (int) $user_id;
+		if ( ! $user_id ) {
+			return false;
+		}
+		return user_can( $user_id, 'manage_options' )
+			|| user_can( $user_id, 'mjc_manage_club' )
+			|| user_can( $user_id, 'mjc_manage_members' );
+	}
+
+	/**
+	 * شناسه‌ی کاربران مدیر/کاربر ارشد (برای حذف از فهرست‌ها و شمارش‌ها).
+	 *
+	 * @return array
+	 */
+	public static function staff_user_ids() {
+		$ids = array();
+		foreach ( array( 'manage_options', 'mjc_manage_members' ) as $cap ) {
+			foreach ( (array) get_users( array( 'capability' => $cap, 'fields' => 'ID' ) ) as $uid ) {
+				$ids[ (int) $uid ] = (int) $uid;
+			}
+		}
+		return array_values( $ids );
+	}
+
+	/**
+	 * قطعه‌ی SQL برای حذف کاربران مدیر از کوئری‌های جدول اعضا.
+	 *
+	 * @return string مثل " AND user_id NOT IN (1,2)" یا رشته‌ی خالی.
+	 */
+	public static function not_staff_sql() {
+		$staff = self::staff_user_ids();
+		if ( ! $staff ) {
+			return '';
+		}
+		return ' AND user_id NOT IN (' . implode( ',', array_map( 'intval', $staff ) ) . ')';
+	}
+
+	/**
+	 * نگهداری دوره‌ای (هر چند دقیقه): ترمیم قفل‌شدن مدیر و وضعیت ردیف‌های کاربران مدیر.
+	 */
+	public static function maintenance() {
+		if ( (int) get_option( 'mjc_maintenance_ts', 0 ) > time() - 300 ) {
+			return;
+		}
+		update_option( 'mjc_maintenance_ts', time(), false );
+		self::repair_admin_lockout();
+		self::normalize_staff_rows();
+	}
+
+	/**
+	 * ترمیم خودکار حالتی که هیچ کاربری با manage_options باقی نمانده (مثلاً پس از تغییر نقش اشتباه ادمین).
+	 * نخستین کاربری که نقشش فقط نقش‌های عضویتی است، دوباره administrator می‌شود.
+	 */
+	public static function repair_admin_lockout() {
+		if ( is_multisite() ) {
+			return;
+		}
+		$admins = get_users( array( 'capability' => 'manage_options', 'fields' => 'ID', 'number' => 1 ) );
+		if ( $admins ) {
+			return;
+		}
+		$candidates = get_users( array( 'orderby' => 'ID', 'order' => 'ASC', 'fields' => 'all' ) );
+		foreach ( (array) $candidates as $u ) {
+			$roles = array_values( array_filter( (array) $u->roles ) );
+			$only_club = $roles && ! array_diff( $roles, array( MJC_Roles::MEMBER, 'subscriber' ) );
+			if ( ! $only_club ) {
+				continue;
+			}
+			$u->set_role( 'administrator' );
+			MJC_Roles::install();
+			MJC_Audit::log( 'admin_role_restored', 'user', (int) $u->ID, 'بازیابی خودکار نقش مدیر' );
+			break;
+		}
+	}
+
+	/**
+	 * ردیف کاربران مدیر/کاربر ارشد همیشه «تأییدشده» می‌ماند (نیاز به تأیید ندارند).
+	 */
+	public static function normalize_staff_rows() {
+		global $wpdb;
+		$staff = self::staff_user_ids();
+		if ( ! $staff ) {
+			return;
+		}
+		$in = implode( ',', array_map( 'intval', $staff ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( 'UPDATE ' . mjc_table( 'members' ) . " SET status = 'approved' WHERE user_id IN ({$in}) AND status <> 'approved'" );
+		// phpcs:enable
 	}
 
 	/**
@@ -58,6 +158,10 @@ class MJC_Members {
 	public static function upsert( $user_id, $data ) {
 		$existing = self::get_by_user( $user_id );
 		$data     = array_merge( array( 'updated_at' => current_time( 'mysql' ) ), $data );
+		// کاربران مدیر همیشه تأییدشده می‌مانند؛ وضعیت ورودی نمی‌تواند آن را تغییر دهد.
+		if ( self::is_staff( $user_id ) ) {
+			$data['status'] = 'approved';
+		}
 		if ( $existing ) {
 			MJC_DB::update( 'members', $data, array( 'user_id' => (int) $user_id ) );
 			return (int) $existing->id;
@@ -65,8 +169,11 @@ class MJC_Members {
 		$data = array_merge( array(
 			'user_id'    => (int) $user_id,
 			'created_at' => current_time( 'mysql' ),
-			'status'     => 'pending',
+			'status'     => self::is_staff( $user_id ) ? 'approved' : 'pending',
 		), $data );
+		if ( self::is_staff( $user_id ) ) {
+			$data['status'] = 'approved';
+		}
 		return MJC_DB::insert( 'members', $data );
 	}
 
@@ -121,13 +228,13 @@ class MJC_Members {
 			'updated_at'    => current_time( 'mysql' ),
 		), array( 'id' => (int) $member_id ) );
 
-		// همگام‌سازی نقش وردپرس.
+		// همگام‌سازی نقش وردپرس — بدون دست زدن به نقش کاربران مدیر و بدون پاک‌کردن نقش‌های دیگر.
 		$user = get_userdata( (int) $member->user_id );
-		if ( $user ) {
+		if ( $user && ! self::is_staff( (int) $member->user_id ) ) {
 			if ( 'approved' === $status ) {
-				$user->set_role( MJC_Roles::MEMBER );
-			} elseif ( 'suspended' === $status ) {
-				$user->set_role( 'subscriber' );
+				$user->add_role( MJC_Roles::MEMBER );
+			} else {
+				$user->remove_role( MJC_Roles::MEMBER );
 			}
 		}
 
@@ -186,11 +293,12 @@ class MJC_Members {
 	 * @return array
 	 */
 	public static function stats() {
+		$ns = self::not_staff_sql();
 		return array(
-			'total'    => (int) MJC_DB::var( 'SELECT COUNT(*) FROM ' . mjc_table( 'members' ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			'pending'  => (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'members' ) . " WHERE status = 'pending'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			'approved' => (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'members' ) . " WHERE status = 'approved'" ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			'month'    => (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'members' ) . " WHERE created_at >= %s", array( date( 'Y-m-01 00:00:00' ) ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'total'    => (int) MJC_DB::var( 'SELECT COUNT(*) FROM ' . mjc_table( 'members' ) . ' WHERE 1=1' . $ns ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'pending'  => (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'members' ) . " WHERE status = 'pending'" . $ns ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'approved' => (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'members' ) . " WHERE status = 'approved'" . $ns ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'month'    => (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'members' ) . " WHERE created_at >= %s" . $ns, array( date( 'Y-m' ) . '%' ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		);
 	}
 }

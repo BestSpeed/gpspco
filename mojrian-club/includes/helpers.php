@@ -153,6 +153,9 @@ function mjc_member( $user_id = 0 ) {
  * @return bool
  */
 function mjc_is_active_member() {
+	if ( MJC_Members::is_staff( get_current_user_id() ) ) {
+		return true;
+	}
 	$member = mjc_member();
 	return $member && 'approved' === $member->status;
 }

@@ -110,10 +110,10 @@ class MJC_Auth {
 			'referred_by'      => $referred_by,
 		) );
 
-		if ( 'approved' === $status ) {
+		if ( 'approved' === $status && ! MJC_Members::is_staff( $user_id ) ) {
 			$user = get_userdata( $user_id );
 			if ( $user ) {
-				$user->set_role( MJC_Roles::MEMBER );
+				$user->add_role( MJC_Roles::MEMBER );
 			}
 			MJC_Points::award_by_rule( $user_id, 'welcome', 'خوش‌آمدگویی عضویت در باشگاه', 'member', $member_id );
 			if ( $referred_by ) {
