@@ -210,6 +210,22 @@ class MJC_Forms {
 		if ( '' === $city || '' === $prov ) {
 			$errors[] = 'استان و شهر الزامی است.';
 		}
+
+		// تصویر کاربر (اختیاری، حداکثر ۵۰۰ کیلوبایت).
+		$has_avatar = ! empty( $_FILES['avatar']['name'] );
+		if ( $has_avatar ) {
+			// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$aext = strtolower( pathinfo( (string) wp_unslash( $_FILES['avatar']['name'] ), PATHINFO_EXTENSION ) );
+			// phpcs:enable
+			if ( ! in_array( $aext, array( 'jpg', 'jpeg', 'png', 'webp' ), true ) ) {
+				$errors[] = 'برای تصویر کاربر فقط فایل‌های jpg, jpeg, png, webp مجاز است.';
+				$has_avatar = false;
+			}
+			if ( isset( $_FILES['avatar']['size'] ) && (int) $_FILES['avatar']['size'] > 500 * 1024 ) {
+				$errors[] = 'حجم تصویر کاربر باید حداکثر ۵۰۰ کیلوبایت باشد.';
+				$has_avatar = false;
+			}
+		}
 		if ( $errors ) {
 			return new WP_Error( 'fields', implode( ' ', $errors ) );
 		}
@@ -236,6 +252,19 @@ class MJC_Forms {
 		MJC_Members::upsert( $user_id, $data );
 		if ( ! empty( $data['full_name'] ) ) {
 			wp_update_user( array( 'ID' => $user_id, 'display_name' => $data['full_name'] ) );
+		}
+
+		// ذخیره‌ی تصویر کاربر.
+		if ( $has_avatar ) {
+			$ids = mjc_uploaded_ids( 'avatar' );
+			if ( $ids ) {
+				$member_row = MJC_Members::get_by_user( $user_id );
+				$old_avatar = $member_row ? (int) $member_row->avatar_id : 0;
+				MJC_Members::upsert( $user_id, array( 'avatar_id' => (int) $ids[0] ) );
+				if ( $old_avatar && $old_avatar !== (int) $ids[0] ) {
+					wp_delete_attachment( $old_avatar, true );
+				}
+			}
 		}
 		do_action( 'mjc_profile_updated', $user_id );
 		return 'ok';
@@ -339,24 +368,6 @@ class MJC_Forms {
 		}
 		return 'pending';
 	}
-
-	/**
-	 * فرم: درخواست پایه فنی.
-	 *
-	 * @return string|WP_Error
-	 */
-	public static function form_grade_request() {
-		self::verify( 'mjc_grade' );
-		if ( ! mjc_is_active_member() ) {
-			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند درخواست دهند.' );
-		}
-		$result = MJC_Grades::request( get_current_user_id(), array(
-			'requested_level' => isset( $_POST['requested_level'] ) ? sanitize_key( wp_unslash( $_POST['requested_level'] ) ) : '',
-			'notes'           => isset( $_POST['notes'] ) ? wp_kses_post( wp_unslash( $_POST['notes'] ) ) : '',
-		) );
-		return is_wp_error( $result ) ? $result : 'pending';
-	}
-
 	/**
 	 * فرم: درخواست جایزه.
 	 *
@@ -373,43 +384,7 @@ class MJC_Forms {
 			isset( $_POST['shipping_address'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_address'] ) ) : ''
 		);
 		return is_wp_error( $result ) ? $result : 'pending';
-	}
-
-	/**
-	 * فرم: ثبت‌نام دوره.
-	 *
-	 * @return string|WP_Error
-	 */
-	public static function form_course_enroll() {
-		self::verify( 'mjc_course' );
-		if ( ! mjc_is_active_member() ) {
-			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند ثبت‌نام کنند.' );
-		}
-		$result = MJC_Courses::enroll( get_current_user_id(), isset( $_POST['course_id'] ) ? (int) $_POST['course_id'] : 0 );
-		return is_wp_error( $result ) ? $result : 'ok';
-	}
-
-	/**
-	 * فرم: پاسخ نظرسنجی.
-	 *
-	 * @return string|WP_Error
-	 */
-	public static function form_survey() {
-		self::verify( 'mjc_survey' );
-		if ( ! mjc_is_active_member() ) {
-			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند شرکت کنند.' );
-		}
-		// phpcs:disable WordPress.Security.NonceVerification.Missing
-		$answers = array();
-		if ( isset( $_POST['answers'] ) && is_array( $_POST['answers'] ) ) {
-			$answers = wp_unslash( $_POST['answers'] );
-		}
-		// phpcs:enable
-		$result = MJC_Surveys::submit( get_current_user_id(), isset( $_POST['survey_id'] ) ? (int) $_POST['survey_id'] : 0, $answers );
-		return is_wp_error( $result ) ? $result : 'ok';
-	}
-
-	/**
+	}	/**
 	 * فرم: شرکت در کمپین.
 	 *
 	 * @return string|WP_Error
@@ -422,22 +397,6 @@ class MJC_Forms {
 		$result = MJC_Campaigns::join( get_current_user_id(), isset( $_POST['campaign_id'] ) ? (int) $_POST['campaign_id'] : 0 );
 		return is_wp_error( $result ) ? $result : 'ok';
 	}
-
-	/**
-	 * فرم: درخواست برداشت کیف پول.
-	 *
-	 * @return string|WP_Error
-	 */
-	public static function form_wallet_withdraw() {
-		self::verify( 'mjc_wallet' );
-		if ( ! mjc_is_active_member() ) {
-			return new WP_Error( 'access', 'فقط اعضای تأییدشده می‌توانند درخواست دهند.' );
-		}
-		$amount = isset( $_POST['amount'] ) ? (int) mjc_to_en_digits( str_replace( array( ',', '،' ), '', wp_unslash( $_POST['amount'] ) ) ) : 0; // phpcs:ignore
-		$result = MJC_Wallet::withdraw_request( get_current_user_id(), $amount );
-		return is_wp_error( $result ) ? $result : 'pending';
-	}
-
 	/**
 	 * فرم: تیکت/تماس.
 	 *
@@ -454,23 +413,6 @@ class MJC_Forms {
 		);
 		return is_wp_error( $result ) ? $result : 'ok';
 	}
-
-	/**
-	 * فرم: استعلام فنی.
-	 *
-	 * @return string|WP_Error
-	 */
-	public static function form_inquiry() {
-		self::verify( 'mjc_inquiry' );
-		$query  = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
-		$result = MJC_Grades::inquiry( $query );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		set_transient( 'mjc_inquiry_' . get_current_user_id() . '_' . md5( $query ), $result, 5 * MINUTE_IN_SECONDS );
-		return array( 'redirect' => add_query_arg( 'mjc_inquiry', rawurlencode( $query ), mjc_page_url( 'inquiry' ) ) );
-	}
-
 	/**
 	 * فرم: خواندن اعلان‌ها.
 	 *

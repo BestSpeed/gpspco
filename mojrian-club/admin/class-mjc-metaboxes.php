@@ -1,6 +1,6 @@
 <?php
 /**
- * جعبه‌های متای CPT های افزونه (جوایز، دوره‌ها، نظرسنجی، کمپین).
+ * جعبه‌های متای CPT های افزونه (جوایز، کمپین).
  *
  * @package mojrian-club
  */
@@ -27,8 +27,6 @@ class MJC_Metaboxes {
 	 */
 	public static function add() {
 		add_meta_box( 'mjc_reward_meta', 'مشخصات جایزه', array( __CLASS__, 'reward_box' ), 'mjc_reward', 'normal', 'high' );
-		add_meta_box( 'mjc_course_meta', 'مشخصات دوره', array( __CLASS__, 'course_box' ), 'mjc_course', 'normal', 'high' );
-		add_meta_box( 'mjc_survey_meta', 'پرسش‌های نظرسنجی (JSON)', array( __CLASS__, 'survey_box' ), 'mjc_survey', 'normal', 'high' );
 		add_meta_box( 'mjc_campaign_meta', 'مشخصات کمپین', array( __CLASS__, 'campaign_box' ), 'mjc_campaign', 'normal', 'high' );
 		add_meta_box( 'mjc_guide_meta', 'گزینه‌های راهنما', array( __CLASS__, 'guide_box' ), array( 'mjc_guide', 'mjc_faq' ), 'side', 'default' );
 	}
@@ -60,36 +58,7 @@ class MJC_Metaboxes {
 		echo '</select></label></p>';
 		echo '<p class="description" style="margin:0;">برای تصویر دلخواه از جعبه «تصویر شاخص» استفاده کنید. با انتخاب آیکون آماده و ذخیره، همان آیکون به‌عنوان تصویر شاخص جایزه نیز ثبت می‌شود.</p>';
 		echo '</div></div>';
-	}
-
-	/**
-	 * جعبه‌ی دوره.
-	 *
-	 * @param WP_Post $post پست.
-	 */
-	public static function course_box( $post ) {
-		wp_nonce_field( 'mjc_meta', 'mjc_meta_nonce' );
-		$duration = get_post_meta( $post->ID, 'mjc_duration', true );
-		$points   = get_post_meta( $post->ID, 'mjc_course_points', true );
-		echo '<p><label>مدت دوره (ساعت): <input type="number" name="mjc_duration" value="' . esc_attr( $duration ) . '" /></label></p>';
-		echo '<p><label>امتیاز تکمیل دوره (اختیاری؛ اگر خالی باشد از قوانین امتیاز استفاده می‌شود): <input type="number" name="mjc_course_points" value="' . esc_attr( $points ) . '" /></label></p>';
-		echo '<p class="description">برای تکمیل دوره‌ی هر کاربر، از فهرست «دوره‌ها» در پنل باشگاه اقدام کنید.</p>';
-	}
-
-	/**
-	 * جعبه‌ی نظرسنجی.
-	 *
-	 * @param WP_Post $post پست.
-	 */
-	public static function survey_box( $post ) {
-		wp_nonce_field( 'mjc_meta', 'mjc_meta_nonce' );
-		$questions = get_post_meta( $post->ID, 'mjc_questions', true );
-		echo '<p>پرسش‌ها را به‌صورت JSON وارد کنید:</p>';
-		echo '<textarea name="mjc_questions" rows="8" style="width:100%;direction:ltr;font-family:monospace;">' . esc_textarea( $questions ) . '</textarea>';
-		echo '<p class="description">نمونه: [{"q":"از خدمات باشگاه راضی هستید؟","type":"radio","options":["بله","خیر","تا حدی"]},{"q":"پیشنهاد شما؟","type":"text"}]</p>';
-	}
-
-	/**
+	}	/**
 	 * جعبه‌ی کمپین.
 	 *
 	 * @param WP_Post $post پست.
@@ -142,7 +111,6 @@ class MJC_Metaboxes {
 			'mjc_points_cost'  => 'intval',
 			'mjc_stock'        => 'intval',
 			'mjc_duration'     => 'intval',
-			'mjc_course_points'=> 'intval',
 			'mjc_end_date'     => 'sanitize_text_field',
 		);
 		foreach ( $fields as $key => $sanitize ) {

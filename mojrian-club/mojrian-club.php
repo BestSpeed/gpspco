@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       باشگاه مجریان | Mojrian Club
  * Plugin URI:        https://github.com/BestSpeed/gpspco
- * Description:       افزونه جامع باشگاه مجریان؛ عضویت و تأیید مجریان، ثبت پروژه، موتور امتیاز (گیتا)، پایه فنی و استعلام، دوره‌های آموزشی، بانک دانش، فروشگاه امتیاز، نظرسنجی، کمپین و قرعه‌کشی، کیف پول، کارت عضویت، راهنمای باشگاه و پنل مدیریت کامل — فارسی و راست‌به‌چپ.
- * Version: 1.6.5
+ * Description:       افزونه جامع باشگاه مجریان؛ عضویت و تأیید مجریان، ثبت پروژه، موتور امتیاز (گیتا)، فروشگاه امتیاز، کمپین و قرعه‌کشی، معرفی دوستان، اعلان‌ها، راهنمای باشگاه و پنل مدیریت کامل — فارسی و راست‌به‌چپ.
+ * Version: 1.6.6
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            گروه صنایع گیتی پسند — تیم توسعه باشگاه مجریان
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MJC_VERSION', '1.6.5' );
+define( 'MJC_VERSION', '1.6.6' );
 define( 'MJC_PLUGIN_FILE', __FILE__ );
 define( 'MJC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MJC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -39,12 +39,7 @@ require_once MJC_PLUGIN_DIR . 'includes/class-mjc-points.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-notifications.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-auth.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-projects.php';
-require_once MJC_PLUGIN_DIR . 'includes/class-mjc-grades.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-rewards.php';
-require_once MJC_PLUGIN_DIR . 'includes/class-mjc-wallet.php';
-require_once MJC_PLUGIN_DIR . 'includes/class-mjc-courses.php';
-require_once MJC_PLUGIN_DIR . 'includes/class-mjc-knowledge.php';
-require_once MJC_PLUGIN_DIR . 'includes/class-mjc-surveys.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-campaigns.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-referrals.php';
 require_once MJC_PLUGIN_DIR . 'includes/class-mjc-tickets.php';
@@ -76,12 +71,7 @@ function mjc_run() {
 	MJC_Public::hooks();
 	MJC_Points::hooks();
 	MJC_Projects::hooks();
-	MJC_Grades::hooks();
 	MJC_Rewards::hooks();
-	MJC_Wallet::hooks();
-	MJC_Courses::hooks();
-	MJC_Knowledge::hooks();
-	MJC_Surveys::hooks();
 	MJC_Campaigns::hooks();
 	MJC_Referrals::hooks();
 	MJC_Tickets::hooks();

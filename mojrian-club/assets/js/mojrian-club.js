@@ -4,20 +4,6 @@
 (function () {
 	'use strict';
 
-	// QR کارت عضویت.
-	function initQr() {
-		var box = document.getElementById('mjc-qr');
-		if (!box || typeof QRCode === 'undefined') {
-			return;
-		}
-		// eslint-disable-next-line no-new
-		new QRCode(box, {
-			text: box.getAttribute('data-url') || window.location.href,
-			width: 96,
-			height: 96
-		});
-	}
-
 	// دکمه‌ی «آیا مفید بود؟» در راهنما.
 	function initFeedback() {
 		var buttons = document.querySelectorAll('.mjc-feedback');
@@ -54,7 +40,6 @@
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
-		initQr();
 		initFeedback();
 		initForms();
 	});

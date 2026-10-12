@@ -80,12 +80,11 @@ class MJC_Install {
 			'projects'      => array( 'ثبت پروژه تاسیسات', '[mojrian_projects]' ),
 			'points'        => array( 'تاریخچه امتیاز', '[mojrian_points]' ),
 			'rewards'       => array( 'تبدیل امتیازات به جوایز', '[mojrian_rewards]' ),
-			'knowledge'     => array( 'بانک دانش', '[mojrian_knowledge]' ),
 			'campaigns'     => array( 'کمپین‌ها و قرعه‌کشی', '[mojrian_campaigns]' ),
+			'notifications' => array( 'اعلانات', '[mojrian_notifications]' ),
 			'referral'      => array( 'معرفی دوستان', '[mojrian_referral]' ),
 			'guide'         => array( 'راهنمای باشگاه', '[mojrian_guide]' ),
 			'faq'           => array( 'سوالات متداول', '[mojrian_faq]' ),
-			'inquiry'       => array( 'استعلام فنی مجریان', '[mojrian_inquiry]' ),
 			'contact'       => array( 'ارتباط با ما', '[mojrian_contact]' ),
 		);
 

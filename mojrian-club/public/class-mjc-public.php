@@ -56,7 +56,6 @@ class MJC_Public {
 
 		// QR کارت عضویت (فقط وقتی لازم است).
 		if ( is_page() && get_the_ID() === (int) ( mjc_pages()['card'] ?? 0 ) ) {
-			wp_enqueue_script( 'mjc-qrcode', 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js', array(), '1.0.0', true );
 		}
 	}
 }

@@ -53,7 +53,7 @@ $thumbs = $wpdb->get_col(
 );
 $attachments = array_merge( $attachments, array_map( 'intval', (array) $thumbs ) );
 
-// ۲) حذف مطالب انواع اختصاصی افزونه (mjc_reward، mjc_campaign، mjc_course، mjc_guide، mjc_faq، mjc_knowledge، mjc_survey).
+// ۲) حذف مطالب انواع اختصاصی افزونه (mjc_reward، mjc_campaign، mjc_guide، mjc_faq).
 $cpt_posts = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_type LIKE 'mjc_%'" );
 mjc_uninstall_delete_posts( $cpt_posts );
 

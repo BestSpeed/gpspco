@@ -222,6 +222,10 @@ class MJC_Members {
 		if ( ! $member ) {
 			return false;
 		}
+		// کاربران مدیر هرگز تغییر وضعیت داده نمی‌شوند.
+		if ( self::is_staff( (int) $member->user_id ) ) {
+			return false;
+		}
 		MJC_DB::update( 'members', array(
 			'status'        => sanitize_key( $status ),
 			'reject_reason' => sanitize_text_field( $reason ),

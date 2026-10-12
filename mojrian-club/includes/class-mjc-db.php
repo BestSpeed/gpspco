@@ -51,9 +51,7 @@ class MJC_DB {
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			reject_reason VARCHAR(255) NOT NULL DEFAULT '',
 			points_balance BIGINT NOT NULL DEFAULT 0,
-			wallet_balance BIGINT NOT NULL DEFAULT 0,
-			grade VARCHAR(40) NOT NULL DEFAULT '',
-			grade_certificate VARCHAR(40) NOT NULL DEFAULT '',
+			avatar_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			referral_code VARCHAR(20) NOT NULL DEFAULT '',
 			referred_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
@@ -109,24 +107,7 @@ class MJC_DB {
 			KEY created_at (created_at)
 		) $charset;";
 
-		$sqls[] = "CREATE TABLE {$p}grade_requests (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			user_id BIGINT UNSIGNED NOT NULL,
-			requested_level VARCHAR(40) NOT NULL DEFAULT '',
-			status VARCHAR(20) NOT NULL DEFAULT 'pending',
-			theory_score DECIMAL(5,2) NULL,
-			practical_score DECIMAL(5,2) NULL,
-			final_level VARCHAR(40) NOT NULL DEFAULT '',
-			notes TEXT NULL,
-			reviewed_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
-			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-			updated_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-			PRIMARY KEY  (id),
-			KEY user_id (user_id),
-			KEY status (status)
-		) $charset;";
-
-		$sqls[] = "CREATE TABLE {$p}reward_requests (
+				$sqls[] = "CREATE TABLE {$p}reward_requests (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			user_id BIGINT UNSIGNED NOT NULL,
 			reward_id BIGINT UNSIGNED NOT NULL,
@@ -142,43 +123,7 @@ class MJC_DB {
 			KEY status (status)
 		) $charset;";
 
-		$sqls[] = "CREATE TABLE {$p}wallet_transactions (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			user_id BIGINT UNSIGNED NOT NULL,
-			amount BIGINT NOT NULL DEFAULT 0,
-			balance_after BIGINT NOT NULL DEFAULT 0,
-			type VARCHAR(20) NOT NULL DEFAULT 'credit',
-			status VARCHAR(20) NOT NULL DEFAULT 'done',
-			description VARCHAR(255) NOT NULL DEFAULT '',
-			created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
-			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-			PRIMARY KEY  (id),
-			KEY user_id (user_id),
-			KEY status (status)
-		) $charset;";
-
-		$sqls[] = "CREATE TABLE {$p}enrollments (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			user_id BIGINT UNSIGNED NOT NULL,
-			course_id BIGINT UNSIGNED NOT NULL,
-			status VARCHAR(20) NOT NULL DEFAULT 'active',
-			progress INT UNSIGNED NOT NULL DEFAULT 0,
-			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-			PRIMARY KEY  (id),
-			UNIQUE KEY user_course (user_id, course_id)
-		) $charset;";
-
-		$sqls[] = "CREATE TABLE {$p}survey_responses (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			survey_id BIGINT UNSIGNED NOT NULL,
-			user_id BIGINT UNSIGNED NOT NULL,
-			answers LONGTEXT NULL,
-			created_at DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-			PRIMARY KEY  (id),
-			UNIQUE KEY survey_user (survey_id, user_id)
-		) $charset;";
-
-		$sqls[] = "CREATE TABLE {$p}lottery_entries (
+								$sqls[] = "CREATE TABLE {$p}lottery_entries (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			campaign_id BIGINT UNSIGNED NOT NULL,
 			user_id BIGINT UNSIGNED NOT NULL,

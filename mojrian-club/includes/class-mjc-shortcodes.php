@@ -28,17 +28,12 @@ class MJC_Shortcodes {
 			'mojrian_projects'      => 'render_projects',
 			'mojrian_points'        => 'render_points',
 			'mojrian_rewards'       => 'render_rewards',
-			'mojrian_courses'       => 'render_courses',
-			'mojrian_knowledge'     => 'render_knowledge',
-			'mojrian_surveys'       => 'render_surveys',
 			'mojrian_campaigns'     => 'render_campaigns',
 			'mojrian_referral'      => 'render_referral',
-			'mojrian_wallet'        => 'render_wallet',
 			'mojrian_card'          => 'render_card',
 			'mojrian_notifications' => 'render_notifications',
 			'mojrian_guide'         => 'render_guide',
 			'mojrian_faq'           => 'render_faq',
-			'mojrian_inquiry'       => 'render_inquiry',
 			'mojrian_contact'       => 'render_contact',
 		);
 		foreach ( $map as $tag => $method ) {
@@ -107,6 +102,7 @@ class MJC_Shortcodes {
 			'points'        => 'تاریخچه امتیاز',
 			'rewards'       => 'فروشگاه امتیاز',
 			'campaigns'     => 'کمپین‌ها',
+			'notifications' => 'اعلانات',
 			'referral'      => 'معرفی دوستان',
 		);
 		$current = '';
@@ -399,7 +395,7 @@ class MJC_Shortcodes {
 		mjc_render_notice();
 		echo '<section class="mjc-hero">';
 		echo '<h1>' . esc_html( $club ) . '</h1>';
-		echo '<p>خانه‌ی مجریان تاسیسات مکانیکی؛ با عضویت و فعالیت در باشگاه، ' . esc_html( mjc_get_setting( 'points_label', 'امتیاز' ) ) . ' کسب کنید و از اعتبارات نقدی و غیرنقدی، دوره‌های آموزشی رایگان و طرح‌های تشویقی بهره‌مند شوید.</p>';
+		echo '<p>خانه‌ی مجریان تاسیسات مکانیکی؛ با عضویت و فعالیت در باشگاه، ' . esc_html( mjc_get_setting( 'points_label', 'امتیاز' ) ) . ' کسب کنید و از اعتبارات نقدی و غیرنقدی و طرح‌های تشویقی بهره‌مند شوید.</p>';
 		echo '<div class="mjc-hero-actions">';
 		if ( is_user_logged_in() ) {
 			echo '<a class="mjc-btn mjc-btn-primary" href="' . esc_url( mjc_page_url( 'dashboard' ) ) . '">ورود به داشبورد</a>';
@@ -415,7 +411,7 @@ class MJC_Shortcodes {
 			array( 'icon' => 'users', 'num' => $stats['total'], 'label' => 'عضو باشگاه' ),
 			array( 'icon' => 'projects', 'num' => $projects['total'], 'label' => 'پروژه ثبت‌شده' ),
 			array( 'icon' => 'points', 'num' => $points_total, 'label' => 'امتیاز اهداشده' ),
-			array( 'icon' => 'card', 'num' => (int) MJC_DB::var( "SELECT COUNT(*) FROM " . mjc_table( 'members' ) . " WHERE grade != ''" ), 'label' => 'دارای پایه فنی' ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			array( 'icon' => 'card', 'num' => count( (array) get_posts( array( 'post_type' => 'mjc_reward', 'post_status' => 'publish', 'numberposts' => 500, 'fields' => 'ids' ) ) ), 'label' => 'جایزه فروشگاه' )
 		);
 		foreach ( $cards as $card ) {
 			echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( (float) $card['num'] ) ) ) . '</span><span class="mjc-stat-label">' . esc_html( $card['label'] ) . '</span></div>';
@@ -425,10 +421,9 @@ class MJC_Shortcodes {
 		echo '<section class="mjc-grid mjc-grid-3">';
 		$features = array(
 			array( 'ثبت پروژه و کسب امتیاز', 'پروژه‌های اجرایی خود را ثبت کنید و پس از تأیید، امتیاز باشگاه را دریافت کنید.', 'projects', 'projects' ),
-			array( 'پایه فنی و استعلام', 'در ارزیابی مهارت شرکت کنید، پایه فنی بگیرید و برای کارفرمایان قابل استعلام شوید.', 'grades', 'inquiry' ),
+			array( 'تاریخچه امتیاز', 'ریز فعالیت‌ها و امتیازهای کسب‌شده‌ی خود را ببینید.', 'points', 'points' ),
 			array( 'فروشگاه امتیاز', 'امتیازهای خود را به ابزارآلات تخصصی، اعتبار ریالی و هدایای باشگاه تبدیل کنید.', 'rewards', 'rewards' ),
-			array( 'دوره‌های آموزشی', 'در دوره‌های رایگان مهارت‌افزایی شرکت کنید و گواهی پایان دوره بگیرید.', 'courses', 'courses' ),
-			array( 'بانک دانش', 'جدیدترین آموزش‌ها، کاتالوگ‌ها و نکات فنی را مطالعه کنید.', 'knowledge', 'knowledge' ),
+			array( 'کمپین‌ها و قرعه‌کشی', 'در کمپین‌های باشگاه شرکت کنید و شانس خود را در قرعه‌کشی بیازمایید.', 'campaigns', 'campaigns' ),
 			array( 'معرفی دوستان', 'دوستان مجری خود را معرفی کنید و از پاداش عضویت آن‌ها بهره‌مند شوید.', 'referral', 'referral' ),
 		);
 		foreach ( $features as $f ) {
@@ -512,9 +507,8 @@ class MJC_Shortcodes {
 	/* -------------------------------------------------------------------
 	 * صفحات اعضا
 	 * ---------------------------------------------------------------- */
-
 	/**
-	 * داشبورد.
+	 * داشبورد اعضا: پیام مدیر تمام‌عرض، «فعالیت‌های شما»، کارت خوش‌آمد + سایدبار راست، کمپین‌ها و اعلان‌ها.
 	 *
 	 * @return string
 	 */
@@ -529,9 +523,15 @@ class MJC_Shortcodes {
 		$banner_id = (int) mjc_get_setting( 'dashboard_banner_id', 0 );
 		$bcast     = mjc_latest_broadcast();
 		$campaigns = get_posts( array( 'post_type' => 'mjc_campaign', 'post_status' => 'publish', 'numberposts' => 3, 'orderby' => 'date', 'order' => 'DESC', 'no_found_rows' => true ) );
-		list( $notifications ) = MJC_Notify::list_for_user( $user_id, 1, 10 );
-		$user                  = wp_get_current_user();
-		$username              = ( $member && $member->mobile ) ? mjc_pretty_mobile( $member->mobile ) : ( $user && $user->user_login ? $user->user_login : '' );
+		list( $notifications ) = MJC_Notify::list_for_user( $user_id, 1, 3 );
+		$projects_count  = (int) MJC_DB::var( 'SELECT COUNT(*) FROM ' . mjc_table( 'projects' ) . ' WHERE user_id = %d', array( $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$referrals_count = count( (array) MJC_Referrals::referrals( $user_id ) );
+		$user            = wp_get_current_user();
+		$username        = ( $member && $member->mobile ) ? mjc_pretty_mobile( $member->mobile ) : ( $user && $user->user_login ? $user->user_login : '' );
+
+		// نام کاربر از فرم «تکمیل اطلاعات کاربر»؛ در غیر این صورت «میهمان».
+		$full = trim( (string) ( $member->first_name ? trim( $member->first_name . ' ' . (string) $member->last_name ) : (string) $member->full_name ) );
+		$hello = '' !== $full ? $full : 'میهمان';
 
 		ob_start();
 
@@ -540,8 +540,42 @@ class MJC_Shortcodes {
 			echo '<div class="mjc-dash-banner">' . wp_get_attachment_image( $banner_id, 'full' ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
-		// ====== «حساب کاربری» مطابق ماکت: کارت خوش‌آمد + سایدبار کلیدها ======
+		// ====== «پیام مدیر» — تمام‌عرض، زیر منوی بالایی ======
+		echo '<div class="mjc-card mjc-mgr-full"><h3>پیام مدیر</h3><div class="mjc-mgr-msg">';
+		if ( $bcast ) {
+			echo wp_kses_post( wpautop( $bcast->message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '<p class="mjc-text-sm mjc-mgr-msg-date">ارسال: ' . esc_html( mjc_date( $bcast->created_at, false ) ) . '</p>';
+		} else {
+			echo '<p class="mjc-empty">پیامی ثبت نشده است.</p>';
+		}
+		echo '</div></div>';
+
+		// ====== «فعالیت‌های شما» — تمام‌عرض، زیر «پیام مدیر» ======
+		echo '<div class="mjc-card mjc-mgr-full"><h3>فعالیت‌های شما</h3><div class="mjc-stats mjc-stats-4">';
+		echo '<div class="mjc-stat mjc-stat-highlight"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( $earned ) ) ) . '</span><span class="mjc-stat-label">میزان ' . esc_html( $label ) . ' دریافتی شما</span></div>';
+		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( (float) $member->points_balance ) ) ) . '</span><span class="mjc-stat-label">' . esc_html( $label ) . ' فعلی شما</span></div>';
+		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( $projects_count ) ) ) . '</span><span class="mjc-stat-label">تعداد پروژه‌های ثبت شده</span></div>';
+		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( $referrals_count ) ) ) . '</span><span class="mjc-stat-label">تعداد دعوتی‌ها</span></div>';
+		echo '</div></div>';
+
+		// ====== کارت خوش‌آمد + سایدبار (سمت راست) ======
 		echo '<div class="mjc-acc-layout">';
+
+		// سایدبار: آواتار + خوش‌آمد + کلیدها (در RTL سمت راست صفحه).
+		echo '<div class="mjc-acc-side">';
+		$avatar_id = (int) $member->avatar_id;
+		if ( $avatar_id && wp_get_attachment_image_url( $avatar_id, 'thumbnail' ) ) {
+			echo '<div class="mjc-acc-avatar">' . wp_get_attachment_image( $avatar_id, 'thumbnail', false, array( 'class' => 'mjc-acc-avatar-img' ) ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		} else {
+			echo '<div class="mjc-acc-avatar" aria-hidden="true"><svg viewBox="0 0 64 64" width="72" height="72"><circle cx="32" cy="22" r="13" fill="#111"/><path d="M8 58c2-13 12-20 24-20s22 7 24 20z" fill="#111"/></svg></div>';
+		}
+		echo '<div class="mjc-acc-hello"><span>' . esc_html( $hello ) . ' خوش آمدید</span><small>نام کاربری : ' . esc_html( mjc_num( (string) $username ) ) . '</small></div>';
+		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'profile' ) ) . '">تکمیل اطلاعات کاربر</a>';
+		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'guide' ) ) . '">راهنمای باشگاه</a>';
+		echo '<a class="mjc-key mjc-key-primary" href="' . esc_url( mjc_page_url( 'projects' ) ) . '">ثبت پروژه تاسیسات</a>';
+		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'rewards' ) ) . '">تبدیل امتیازات به جوایز</a>';
+		echo '<a class="mjc-key mjc-key-danger" href="' . esc_url( wp_logout_url( mjc_page_url( 'dashboard' ) ) ) . '">خروج از حساب کاربری<span class="mjc-key-ico" aria-hidden="true">⏻</span></a>';
+		echo '</div>';
 
 		// کارت اصلی.
 		echo '<div class="mjc-acc-main">';
@@ -555,30 +589,24 @@ class MJC_Shortcodes {
 		echo '<p><b>خروج شدن از قسمت :</b> برای دسترسی به قسمت های دیگر سایت لطفا از حساب کاربری خود خارج شوید</p></div>';
 		echo '</div>';
 
-		// سایدبار: آواتار + خوش‌آمد + کلیدها.
-		echo '<div class="mjc-acc-side">';
-		echo '<div class="mjc-acc-avatar" aria-hidden="true"><svg viewBox="0 0 64 64" width="72" height="72"><circle cx="32" cy="22" r="13" fill="#111"/><path d="M8 58c2-13 12-20 24-20s22 7 24 20z" fill="#111"/></svg></div>';
-		echo '<div class="mjc-acc-hello"><span>میهمان خوش آمدید</span><small>نام کاربری : ' . esc_html( mjc_num( (string) $username ) ) . '</small></div>';
-		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'profile' ) ) . '">تکمیل اطلاعات کاربر</a>';
-		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'guide' ) ) . '">راهنمای باشگاه</a>';
-		echo '<a class="mjc-key mjc-key-primary" href="' . esc_url( mjc_page_url( 'projects' ) ) . '">ثبت پروژه تاسیسات</a>';
-		echo '<a class="mjc-key" href="' . esc_url( mjc_page_url( 'rewards' ) ) . '">تبدیل امتیازات به جوایز</a>';
-		echo '<a class="mjc-key mjc-key-danger" href="' . esc_url( wp_logout_url( mjc_page_url( 'dashboard' ) ) ) . '">خروج از حساب کاربری<span class="mjc-key-ico" aria-hidden="true">⏻</span></a>';
-		echo '</div>';
-
 		echo '</div>'; // /mjc-acc-layout
 
-		// ====== «پیام مدیر» (آخرین اعلان همگانی) + اعلان‌ها ======
+		// ====== کمپین‌ها + اعلان‌ها (۳ مورد آخر، کنار کمپین‌ها) ======
 		echo '<div class="mjc-grid mjc-grid-2">';
-		echo '<div class="mjc-card"><h3>پیام مدیر</h3><div class="mjc-mgr-msg">';
-		if ( $bcast ) {
-			echo wp_kses_post( wpautop( $bcast->message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo '<p class="mjc-text-sm mjc-mgr-msg-date">ارسال: ' . esc_html( mjc_date( $bcast->created_at, false ) ) . '</p>';
+		echo '<div class="mjc-card"><h3>آخرین کمپین‌ها</h3>';
+		if ( $campaigns ) {
+			echo '<ul class="mjc-camp-list">';
+			foreach ( $campaigns as $c ) {
+				echo '<li><a href="' . esc_url( get_permalink( $c->ID ) ) . '">' . esc_html( $c->post_title ) . '</a></li>';
+			}
+			echo '</ul>';
 		} else {
-			echo '<p class="mjc-empty">پیامی ثبت نشده است.</p>';
+			echo '<p class="mjc-empty">در حال حاضر کمپینی ثبت نشده است.</p>';
 		}
-		echo '</div></div>';
-		echo '<div class="mjc-card"><h3>اعلان‌ها</h3>';
+		echo '</div>';
+
+		echo '<div class="mjc-card"><div class="mjc-flex-between"><h3>اعلان‌ها</h3>';
+		echo '<a class="mjc-text-sm mjc-link-more" href="' . esc_url( mjc_page_url( 'notifications' ) ) . '">مشاهده همه</a></div>';
 		if ( $notifications ) {
 			echo '<ul class="mjc-notif-list">';
 			foreach ( $notifications as $n ) {
@@ -597,26 +625,19 @@ class MJC_Shortcodes {
 		echo '</div>';
 		echo '</div>';
 
-		// ====== کمپین‌ها و امتیاز دریافتی ======
-		echo '<div class="mjc-grid mjc-grid-2">';
-		echo '<div class="mjc-card"><h3>آخرین کمپین‌ها</h3>';
-		if ( $campaigns ) {
-			echo '<ul class="mjc-camp-list">';
-			foreach ( $campaigns as $c ) {
-				echo '<li><a href="' . esc_url( get_permalink( $c->ID ) ) . '">' . esc_html( $c->post_title ) . '</a></li>';
-			}
-			echo '</ul>';
-		} else {
-			echo '<p class="mjc-empty">در حال حاضر کمپینی ثبت نشده است.</p>';
-		}
-		echo '</div>';
-		echo '<div class="mjc-card"><h3>امتیاز شما</h3><div class="mjc-stats">';
-		echo '<div class="mjc-stat mjc-stat-highlight"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( $earned ) ) ) . '</span><span class="mjc-stat-label">میزان ' . esc_html( $label ) . ' دریافتی شما</span></div>';
-		echo '<div class="mjc-stat"><span class="mjc-stat-num">' . esc_html( mjc_num( number_format( (float) $member->points_balance ) ) ) . '</span><span class="mjc-stat-label">' . esc_html( $label ) . ' فعلی شما</span></div>';
-		echo '</div></div>';
-		echo '</div>';
-
 		return self::member_layout( ob_get_clean() );
+	}
+
+	/**
+	 * جعبه‌ی «ابتدا وارد شوید».
+	 *
+	 * @param string $text پیام.
+	 * @return string
+	 */
+	private static function login_required( $text ) {
+		$out  = '<div class="mjc-wrap"><div class="mjc-card mjc-center"><p>' . esc_html( $text ) . '</p>';
+		$out .= '<a class="mjc-btn mjc-btn-primary" href="' . esc_url( mjc_page_url( 'login' ) ) . '">' . esc_html__( 'ورود به باشگاه', 'mojrian-club' ) . '</a></div></div>';
+		return $out;
 	}
 
 	/**
@@ -729,6 +750,15 @@ class MJC_Shortcodes {
 		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="work_address" value="' . esc_attr( $member->work_address ) . '" /></div>';
 		echo '<div class="mjc-mf-label">کد پستی</div>';
 		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="postal_code" inputmode="numeric" value="' . esc_attr( $member->postal_code ) . '" /></div>';
+
+		// تصویر کاربر (حداکثر ۵۰۰ کیلوبایت).
+		echo '<div class="mjc-mf-label">تصویر کاربر</div>';
+		echo '<p class="mjc-mf-hint">حداکثر ۵۰۰ کیلوبایت — فایل‌های مجاز : jpg, jpeg, png, webp</p>';
+		$avatar_id = (int) $member->avatar_id;
+		if ( $avatar_id && wp_get_attachment_image_url( $avatar_id, 'thumbnail' ) ) {
+			echo '<div class="mjc-avatar-preview">' . wp_get_attachment_image( $avatar_id, 'thumbnail', false, array( 'class' => 'mjc-avatar-img' ) ) . '<span class="mjc-text-sm">تصویر فعلی شما — برای تعویض، فایل جدید انتخاب کنید.</span></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+		echo '<div class="mjc-mf-row"><input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp" /></div>';
 
 		echo self::form_close( 'ارسال اطلاعات' );
 		echo '</div>';
@@ -946,7 +976,7 @@ class MJC_Shortcodes {
 			echo '</label>';
 		}
 			echo '</div>';
-			echo self::form_close( 'تبدیل انجام شد', 'mjc-actions-inline' );
+			echo self::form_close( 'تبدیل امتیاز', 'mjc-actions-inline' );
 		} else {
 			echo '<p class="mjc-empty">در حال حاضر جایزه‌ای تعریف نشده است. مدیر سایت می‌تواند جوایز را از بخش «جوایز (فروشگاه امتیاز)» اضافه کند.</p>';
 		}
@@ -968,140 +998,7 @@ class MJC_Shortcodes {
 		}
 		echo '</div>';
 		return self::member_layout( ob_get_clean() );
-	}
-
-
-	/**
-	 * دوره‌ها.
-	 *
-	 * @return string
-	 */
-	public static function render_courses() {
-		$courses = get_posts( array( 'post_type' => 'mjc_course', 'post_status' => 'publish', 'numberposts' => 24 ) );
-		$mine    = array();
-		foreach ( (array) MJC_Courses::enrollments( get_current_user_id() ) as $e ) {
-			$mine[ (int) $e->course_id ] = $e;
-		}
-
-		ob_start();
-		echo '<div class="mjc-card"><h2>دوره‌های آموزشی</h2><div class="mjc-grid mjc-grid-3">';
-		foreach ( $courses as $course ) {
-			echo '<div class="mjc-reward">';
-			if ( has_post_thumbnail( $course->ID ) ) {
-				echo get_the_post_thumbnail( $course->ID, 'medium', array( 'class' => 'mjc-reward-img' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			}
-			echo '<h3>' . esc_html( $course->post_title ) . '</h3>';
-			echo '<p class="mjc-text-sm">' . esc_html( wp_trim_words( wp_strip_all_tags( $course->post_content ), 20 ) ) . '</p>';
-			if ( isset( $mine[ $course->ID ] ) ) {
-				echo '<span class="mjc-badge mjc-badge-' . esc_attr( $mine[ $course->ID ]->status ) . '">' . esc_html( mjc_status_label( $mine[ $course->ID ]->status ) ) . '</span>';
-			} else {
-				echo self::form_open( 'course_enroll', 'mjc_course' );
-				echo '<input type="hidden" name="course_id" value="' . esc_attr( $course->ID ) . '" />';
-				echo self::form_close( 'ثبت‌نام در دوره' );
-			}
-			echo '</div>';
-		}
-		echo '</div>';
-		if ( ! $courses ) {
-			echo mjc_empty_state( 'دوره‌ای منتشر نشده است.' );
-		}
-		echo '</div>';
-		return self::member_layout( ob_get_clean() );
-	}
-
-	/**
-	 * بانک دانش.
-	 *
-	 * @return string
-	 */
-	public static function render_knowledge() {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended
-		$search = isset( $_GET['ks'] ) ? sanitize_text_field( wp_unslash( $_GET['ks'] ) ) : '';
-		$cat    = isset( $_GET['kcat'] ) ? sanitize_title( wp_unslash( $_GET['kcat'] ) ) : '';
-		$paged  = isset( $_GET['mpage'] ) ? max( 1, (int) $_GET['mpage'] ) : 1;
-		// phpcs:enable
-		$query = MJC_Knowledge::search( array( 's' => $search, 'category' => $cat, 'paged' => $paged ) );
-		$cats  = get_terms( array( 'taxonomy' => 'mjc_knowledge_cat', 'hide_empty' => true ) );
-
-		ob_start();
-		echo '<div class="mjc-card"><h2>بانک دانش</h2>';
-		echo '<form method="get" class="mjc-search-form">';
-		if ( isset( $_GET['page_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			echo '<input type="hidden" name="page_id" value="' . esc_attr( (int) $_GET['page_id'] ) . '" />'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		}
-		echo '<input type="text" name="ks" value="' . esc_attr( $search ) . '" placeholder="جست‌وجو در مطالب..." />';
-		if ( ! is_wp_error( $cats ) && $cats ) {
-			echo '<select name="kcat"><option value="">همه‌ی دسته‌ها</option>';
-			foreach ( $cats as $c ) {
-				echo '<option value="' . esc_attr( $c->slug ) . '" ' . selected( $cat, $c->slug, false ) . '>' . esc_html( $c->name ) . '</option>';
-			}
-			echo '</select>';
-		}
-		echo '<button type="submit" class="mjc-btn mjc-btn-primary">جست‌وجو</button></form>';
-
-		echo '<div class="mjc-grid mjc-grid-3">';
-		foreach ( $query->posts as $post ) {
-			echo '<div class="mjc-reward">';
-			if ( has_post_thumbnail( $post->ID ) ) {
-				echo get_the_post_thumbnail( $post->ID, 'medium', array( 'class' => 'mjc-reward-img' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			}
-			echo '<h3><a href="' . esc_url( get_permalink( $post->ID ) ) . '">' . esc_html( $post->post_title ) . '</a></h3>';
-			echo '<p class="mjc-text-sm">' . esc_html( wp_trim_words( wp_strip_all_tags( $post->post_content ), 18 ) ) . '</p></div>';
-		}
-		echo '</div>';
-		if ( ! $query->posts ) {
-			echo mjc_empty_state( 'مطلبی یافت نشد.' );
-		}
-		echo '</div>';
-		return ob_get_clean();
-	}
-
-	/**
-	 * نظرسنجی‌ها.
-	 *
-	 * @return string
-	 */
-	public static function render_surveys() {
-		$surveys = get_posts( array( 'post_type' => 'mjc_survey', 'post_status' => 'publish', 'numberposts' => 20 ) );
-
-		ob_start();
-		echo '<div class="mjc-card"><h2>نظرسنجی‌ها</h2>';
-		foreach ( $surveys as $survey ) {
-			$done = MJC_Surveys::has_participated( get_current_user_id(), $survey->ID );
-			echo '<div class="mjc-survey-item">';
-			echo '<h3>' . esc_html( $survey->post_title ) . '</h3>';
-			echo '<p class="mjc-text-sm">' . esc_html( wp_trim_words( wp_strip_all_tags( $survey->post_content ), 30 ) ) . '</p>';
-			if ( $done ) {
-				echo '<span class="mjc-badge mjc-badge-approved">در این نظرسنجی شرکت کرده‌اید</span>';
-			} else {
-				$questions = MJC_Surveys::questions( $survey->ID );
-				echo self::form_open( 'survey', 'mjc_survey' );
-				echo '<input type="hidden" name="survey_id" value="' . esc_attr( $survey->ID ) . '" />';
-				foreach ( $questions as $i => $q ) {
-					$qtext = isset( $q['q'] ) ? $q['q'] : '';
-					$type  = isset( $q['type'] ) ? $q['type'] : 'radio';
-					echo '<div class="mjc-field"><label>' . esc_html( $qtext ) . '</label>';
-					if ( 'text' === $type ) {
-						echo '<input type="text" name="answers[q' . (int) $i . ']" />';
-					} else {
-						foreach ( (array) ( isset( $q['options'] ) ? $q['options'] : array() ) as $oi => $opt ) {
-							echo '<label class="mjc-check"><input type="radio" name="answers[q' . (int) $i . ']" value="' . esc_attr( $oi ) . '" required /> <span>' . esc_html( $opt ) . '</span></label>';
-						}
-					}
-					echo '</div>';
-				}
-				echo self::form_close( 'ثبت پاسخ' );
-			}
-			echo '</div>';
-		}
-		if ( ! $surveys ) {
-			echo mjc_empty_state( 'نظرسنجی فعالی وجود ندارد.' );
-		}
-		echo '</div>';
-		return self::member_layout( ob_get_clean() );
-	}
-
-	/**
+	}	/**
 	 * کمپین‌ها.
 	 *
 	 * @return string
@@ -1177,42 +1074,6 @@ class MJC_Shortcodes {
 		echo '</div>';
 		return self::member_layout( ob_get_clean() );
 	}
-
-	/**
-	 * کیف پول.
-	 *
-	 * @return string
-	 */
-	public static function render_wallet() {
-		$member = mjc_member();
-		$txs    = MJC_Wallet::transactions( get_current_user_id() );
-		$min    = (int) mjc_get_setting( 'wallet_withdraw_min', 1000000 );
-
-		ob_start();
-		echo '<div class="mjc-grid mjc-grid-2">';
-		echo '<div class="mjc-card"><h2>کیف پول</h2>';
-		echo '<div class="mjc-balance">موجودی فعلی: <strong>' . esc_html( mjc_money( $member ? $member->wallet_balance : 0 ) ) . '</strong> ریال</div>';
-		echo '<h3>درخواست برداشت</h3>';
-		echo self::form_open( 'wallet_withdraw', 'mjc_wallet' );
-		echo self::field( array( 'name' => 'amount', 'label' => 'مبلغ برداشت (ریال) — حداقل ' . mjc_money( $min ), 'required' => true ) );
-		echo self::form_close( 'ثبت درخواست برداشت' );
-		echo '</div>';
-
-		echo '<div class="mjc-card"><h2>تراکنش‌ها</h2>';
-		$table_rows = array();
-		foreach ( $txs as $tx ) {
-			$table_rows[] = array(
-				esc_html( mjc_date( $tx->created_at ) ),
-				esc_html( $tx->description ? $tx->description : mjc_status_label( $tx->type ) ),
-				( $tx->amount > 0 ? '<span class="mjc-points">+' : '<span class="mjc-points mjc-points-neg">' ) . esc_html( mjc_money( $tx->amount ) ) . '</span>',
-				self::badge( $tx->status ),
-			);
-		}
-		echo self::table( array( 'تاریخ', 'شرح', 'مبلغ (ریال)', 'وضعیت' ), $table_rows );
-		echo '</div></div>';
-		return self::member_layout( ob_get_clean() );
-	}
-
 	/**
 	 * کارت عضویت.
 	 *
@@ -1220,8 +1081,7 @@ class MJC_Shortcodes {
 	 */
 	public static function render_card() {
 		$member = mjc_member();
-		$code   = $member ? ( $member->grade_certificate ? $member->grade_certificate : 'MJC-' . str_pad( (string) $member->id, 6, '0', STR_PAD_LEFT ) ) : '';
-		$inquiry_url = mjc_page_url( 'inquiry' );
+		$code   = $member ? 'MJC-' . str_pad( (string) $member->id, 6, '0', STR_PAD_LEFT ) : '';
 
 		ob_start();
 		echo '<div class="mjc-card"><h2>کارت عضویت دیجیتال</h2>';
@@ -1231,11 +1091,9 @@ class MJC_Shortcodes {
 			echo '<div class="mjc-member-card-body">';
 			echo '<div><strong>' . esc_html( MJC_Members::display_name( $member ) ) . '</strong><br />';
 			echo '<span>کد عضویت: ' . esc_html( mjc_num( $code ) ) . '</span><br />';
-			echo '<span>پایه فنی: ' . esc_html( $member->grade ? MJC_Grades::level_label( $member->grade ) : '—' ) . '</span><br />';
-			echo '<span>تاریخ عضویت: ' . esc_html( mjc_date( $member->created_at, false ) ) . '</span></div>';
-			echo '<div class="mjc-qr" id="mjc-qr" data-url="' . esc_url( $inquiry_url ) . '"></div>';
+				echo '<span>تاریخ عضویت: ' . esc_html( mjc_date( $member->created_at, false ) ) . '</span></div>';
 			echo '</div></div>';
-			echo '<p class="mjc-text-sm">این کارت برای احراز هویت حرفه‌ای شما نزد کارفرمایان قابل استفاده است؛ QR بالا به صفحه‌ی «استعلام فنی» اشاره دارد.</p>';
+			echo '<p class="mjc-text-sm">این کارت برای احراز هویت حرفه‌ای شما نزد کارفرمایان قابل استفاده است.</p>';
 		}
 		echo '</div>';
 		return self::member_layout( ob_get_clean() );
@@ -1270,7 +1128,7 @@ class MJC_Shortcodes {
 	}
 
 	/* -------------------------------------------------------------------
-	 * راهنما، استعلام، تماس
+	 * راهنما و تماس
 	 * ---------------------------------------------------------------- */
 
 	/**
@@ -1289,7 +1147,7 @@ class MJC_Shortcodes {
 		ob_start();
 		echo '<div class="mjc-wrap">';
 		mjc_render_notice();
-		echo '<div class="mjc-guide-hero"><h1>راهنمای باشگاه</h1><p>پاسخ همه‌ی پرسش‌های شما درباره‌ی عضویت، امتیازات، پروژه‌ها و پایه فنی</p>';
+		echo '<div class="mjc-guide-hero"><h1>راهنمای باشگاه</h1><p>پاسخ همه‌ی پرسش‌های شما درباره‌ی عضویت، امتیازات و پروژه‌ها</p>';
 		echo '<form method="get" class="mjc-search-form mjc-search-hero">';
 		if ( isset( $_GET['page_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			echo '<input type="hidden" name="page_id" value="' . esc_attr( (int) $_GET['page_id'] ) . '" />'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -1341,50 +1199,6 @@ class MJC_Shortcodes {
 		echo '</div></div>';
 		return ob_get_clean();
 	}
-
-	/**
-	 * استعلام فنی.
-	 *
-	 * @return string
-	 */
-	public static function render_inquiry() {
-		$result = null;
-		$query  = isset( $_GET['mjc_inquiry'] ) ? rawurldecode( sanitize_text_field( wp_unslash( $_GET['mjc_inquiry'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( $query ) {
-			$cache_key = 'mjc_inquiry_' . get_current_user_id() . '_' . md5( $query );
-			$result    = get_transient( $cache_key );
-			if ( ! $result ) {
-				$result = MJC_Grades::inquiry( $query );
-				if ( is_wp_error( $result ) ) {
-					$result = null;
-				}
-			}
-		}
-
-		ob_start();
-		echo '<div class="mjc-wrap mjc-narrow">';
-		mjc_render_notice();
-		echo '<div class="mjc-card"><h1>استعلام فنی مجریان</h1>';
-		echo '<p>برای بررسی اصالت پایه فنی مجری، کد ملی یا شماره موبایل او را وارد کنید.</p>';
-		echo self::form_open( 'inquiry', 'mjc_inquiry' );
-		echo self::field( array( 'name' => 'query', 'label' => 'کد ملی یا شماره موبایل مجری', 'required' => true, 'value' => $query ) );
-		echo self::form_close( 'استعلام' );
-		if ( $result && is_array( $result ) ) {
-			echo '<div class="mjc-inquiry-result">';
-			echo '<h3>نتیجه‌ی استعلام</h3>';
-			echo '<ul class="mjc-list">';
-			echo '<li><strong>نام:</strong> ' . esc_html( $result['name'] ) . '</li>';
-			echo '<li><strong>وضعیت عضویت:</strong> ' . esc_html( $result['status'] ) . '</li>';
-			echo '<li><strong>پایه فنی:</strong> ' . esc_html( $result['grade'] ) . '</li>';
-			echo '<li><strong>کد استعلام:</strong> ' . esc_html( mjc_num( $result['certificate'] ) ) . '</li>';
-			echo '</ul></div>';
-		} elseif ( $query ) {
-			echo mjc_empty_state( 'عضوی با این مشخصات یافت نشد.' );
-		}
-		echo '</div></div>';
-		return ob_get_clean();
-	}
-
 	/**
 	 * ارتباط با ما / تیکت.
 	 *

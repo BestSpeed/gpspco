@@ -172,7 +172,6 @@
 .mjc-badge-approved, .mjc-badge-done, .mjc-badge-completed, .mjc-badge-active { background: #dcfce7; color: #166534; }
 .mjc-badge-rejected, .mjc-badge-suspended { background: #fee2e2; color: #991b1b; }
 .mjc-badge-shipped { background: #dbeafe; color: #1e40af; }
-.mjc-badge-grade { background: var(--mjc-primary); color: #fff; }
 .mjc-badge-dot { background: var(--mjc-danger); color: #fff; }
 
 .mjc-points { color: var(--mjc-success); font-weight: 800; }
@@ -228,7 +227,7 @@
 .mjc-unread { background: #f0f9ff; border-radius: 10px; padding: 10px 12px !important; }
 
 /* کارت‌های محتوایی */
-.mjc-reward, .mjc-campaign, .mjc-survey-item {
+.mjc-reward, .mjc-campaign {
 	background: var(--mjc-card);
 	border: 1px solid var(--mjc-border);
 	border-radius: var(--mjc-radius);
@@ -238,7 +237,6 @@
 .mjc-reward-img { width: 100%; height: 150px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }
 .mjc-reward-meta { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
 .mjc-balance { background: #ecfeff; border-radius: 10px; padding: 10px 16px; display: inline-block; font-size: .95rem; }
-.mjc-survey-item { border-bottom: 1px dashed var(--mjc-border); padding: 18px 0; }
 .mjc-campaign-closed { opacity: .75; }
 
 /* احراز هویت */
@@ -329,7 +327,6 @@
 .mjc-member-card-head { padding: 18px 22px; font-weight: 800; letter-spacing: .3px; background: rgba(255, 255, 255, .12); }
 .mjc-member-card-body { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px; }
 .mjc-member-card-body span { font-size: .88rem; opacity: .95; }
-.mjc-qr { background: #fff; padding: 8px; border-radius: 10px; min-width: 96px; min-height: 96px; display: flex; align-items: center; justify-content: center; }
 
 /* معرفی */
 .mjc-referral-box {
@@ -343,15 +340,6 @@
 	margin: 14px 0 22px;
 }
 .mjc-referral-box input { width: 100%; border: 1px solid var(--mjc-border); border-radius: 10px; padding: 10px 12px; direction: ltr; font-family: inherit; }
-
-/* استعلام */
-.mjc-inquiry-result {
-	margin-top: 18px;
-	background: #f0fdf4;
-	border: 1px solid #bbf7d0;
-	border-radius: 12px;
-	padding: 18px;
-}
 
 /* صفحه‌بندی */
 .mjc-pagination { display: flex; gap: 6px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
@@ -479,6 +467,11 @@
 .mjc-prize-off { opacity: .55; cursor: not-allowed; }
 .mjc-prize-off:hover .mjc-prize-icon { transform: none; }
 .mjc-mgr-msg-date { margin-top: 10px; color: var(--mjc-muted); }
+.mjc-mgr-full { margin: 14px 0; }
+.mjc-stats-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 780px) { .mjc-stats-4 { grid-template-columns: repeat(2, 1fr); } }
+.mjc-link-more { color: var(--mjc-primary-dark); font-weight: 700; text-decoration: none; }
+.mjc-link-more:hover { text-decoration: underline; }
 
 @media (max-width: 900px) {
 	.mjc-account-wrap { grid-template-columns: 1fr; }
@@ -494,6 +487,20 @@
 }
 .mjc-mf-title { font-size: 1.05rem; margin: 14px 0 6px; }
 .mjc-mock-form { max-width: 760px; }
+.mjc-mock-form .mjc-mf-label { position: relative; padding-right: 12px; }
+.mjc-mock-form .mjc-mf-label::before {
+	content: ""; position: absolute; right: 0; top: 4px; bottom: 4px; width: 3px;
+	border-radius: 3px; background: var(--mjc-primary);
+}
+.mjc-mock-form input[type="number"], .mjc-mock-form input[type="email"], .mjc-mock-form input[type="file"] { width: 100%; max-width: 100%; }
+.mjc-mock-form input[type="file"] {
+	padding: 10px 12px; border: 1px dashed #94a3b8; border-radius: 8px; background: #f8fafc;
+	font-family: inherit; font-size: .88rem;
+}
+.mjc-mock-form input:focus, .mjc-mock-form select:focus, .mjc-mock-form textarea:focus {
+	outline: none; border-color: var(--mjc-primary); box-shadow: 0 0 0 3px rgba(14, 116, 144, .16);
+}
+.mjc-mock-form input:hover, .mjc-mock-form select:hover, .mjc-mock-form textarea:hover { border-color: #64748b; }
 .mjc-mock-form .mjc-mf-label { margin: 22px 0 8px; font-weight: 700; font-size: .92rem; }
 .mjc-mock-form .mjc-mf-label em { color: #e11d48; font-style: normal; font-size: .8rem; font-weight: 500; margin-right: 6px; }
 .mjc-mf-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
@@ -506,8 +513,9 @@
 .mjc-mock-form input[type="tel"],
 .mjc-mock-form select,
 .mjc-mock-form textarea {
-	width: 100%; max-width: 100%; padding: 9px 12px; border: 1px solid #94a3b8;
-	border-radius: 4px; background: #fff; font-family: inherit; font-size: .92rem;
+	width: 100%; max-width: 100%; padding: 10px 14px; border: 1px solid #94a3b8;
+	border-radius: 8px; background: #fff; font-family: inherit; font-size: .92rem;
+	transition: border-color .15s, box-shadow .15s;
 }
 .mjc-mock-form input.mjc-mf-narrow { max-width: 340px; }
 .mjc-mock-form textarea { resize: vertical; }
@@ -546,7 +554,7 @@
 .mjc-mf-actions .mjc-btn { border-radius: 4px; padding: 9px 26px; }
 
 /* ======== «حساب کاربری» مطابق ماکت (کلیدها و کارت خوش‌آمد) ======== */
-.mjc-acc-layout { display: grid; grid-template-columns: 1fr 260px; gap: 18px; margin: 18px 0; align-items: start; }
+.mjc-acc-layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; margin: 18px 0; align-items: start; }
 .mjc-acc-main {
 	background: #e1e6ec; border-radius: 18px; padding: 30px 34px 26px;
 	box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
@@ -565,6 +573,10 @@
 	width: 96px; height: 104px; margin: 4px auto 6px; border-radius: 14px;
 	background: #eef1f5; display: flex; align-items: center; justify-content: center;
 }
+.mjc-acc-avatar-img { width: 96px; height: 104px; object-fit: cover; border-radius: 14px; display: block; }
+.mjc-avatar-preview { display: flex; align-items: center; gap: 12px; margin: 8px 0 12px; }
+.mjc-avatar-img { width: 72px; height: 72px; object-fit: cover; border-radius: 12px; border: 1px solid var(--mjc-border); }
+.mjc-avatar-preview .mjc-text-sm { color: var(--mjc-muted); }
 .mjc-acc-hello {
 	background: #fff; border-radius: 12px; padding: 12px 10px; text-align: center;
 	display: flex; flex-direction: column; gap: 6px; color: #465481;
@@ -586,7 +598,6 @@
 .mjc-key-ico { font-size: 1.05rem; line-height: 1; }
 @media (max-width: 900px) {
 	.mjc-acc-layout { grid-template-columns: 1fr; }
-	.mjc-acc-side { order: -1; }
 }
 
 /* ======== داشبورد و پروژه‌ها (نسخه ۱٫۴) ======== */
