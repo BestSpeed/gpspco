@@ -60,8 +60,20 @@ class MJC_Install {
 	}
 
 	/**
-	 * غیرفعال‌سازی.
+	 * بازسازی قواعد بازنویسی بعد از ثبت همه‌ی نوع‌های محتوا.
+	 *
+	 * روی 'init' با اولویت ۲۰ اجرا می‌شود — بعد از register_cpt همه‌ی پست‌تایپ‌های
+	 * افزونه (mjc_reward / mjc_campaign / mjc_guide / mjc_faq) که روی اولویت ۱۰ ثبت
+	 * شده‌اند؛ flush هنگام فعال‌سازی (قبل از ثبت CPTها) قواعد را خالی می‌ساخت و
+	 * لینک‌های کمپین و راهنمای باشگاه ۴۰۴ می‌شدند.
 	 */
+	public static function maybe_flush() {
+		if ( get_option( 'mjc_rewrite_flush' ) !== MJC_VERSION ) {
+			flush_rewrite_rules( false );
+			update_option( 'mjc_rewrite_flush', MJC_VERSION );
+		}
+	}
+
 	public static function deactivate() {
 		flush_rewrite_rules();
 	}

@@ -1179,6 +1179,38 @@ class MJC_Shortcodes {
 	 */
 	public static function render_guide() {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$detail_id = isset( $_GET['mjc_guide'] ) ? (int) $_GET['mjc_guide'] : 0;
+		if ( $detail_id ) {
+			$article = get_post( $detail_id );
+			if ( ! $article || 'mjc_guide' !== $article->post_type ) {
+				ob_start();
+				echo '<div class="mjc-wrap">';
+				mjc_render_notice();
+				echo '<div class="mjc-card"><p>مقاله موردنظر یافت نشد.</p></div></div>';
+				// phpcs:enable
+				return ob_get_clean();
+			}
+			// phpcs:enable
+			$cats = get_the_terms( $article->ID, 'mjc_guide_cat' );
+			ob_start();
+			echo '<div class="mjc-wrap mjc-guide-article">';
+			mjc_render_notice();
+			echo '<a class="mjc-back-link" href="' . esc_url( mjc_page_url( 'guide' ) ) . '">→ بازگشت به راهنمای باشگاه</a>';
+			echo '<article class="mjc-card">';
+			echo '<nav class="mjc-breadcrumb"><a href="' . esc_url( home_url( '/' ) ) . '">خانه</a><span>/</span><a href="' . esc_url( mjc_page_url( 'guide' ) ) . '">راهنمای باشگاه</a><span>/</span><span>' . esc_html( $article->post_title ) . '</span></nav>';
+			echo '<h1>' . esc_html( $article->post_title ) . '</h1>';
+			echo '<div class="mjc-guide-content">' . wp_kses_post( wpautop( $article->post_content ) ) . '</div>';
+			if ( $cats && ! is_wp_error( $cats ) ) {
+				echo '<div class="mjc-guide-tags">';
+				foreach ( $cats as $cat ) {
+					echo '<a class="mjc-badge mjc-badge-approved" href="' . esc_url( add_query_arg( 'gcat', $cat->slug, mjc_page_url( 'guide' ) ) ) . '">' . esc_html( $cat->name ) . '</a> ';
+				}
+				echo '</div>';
+			}
+			echo '</article></div>';
+			return ob_get_clean();
+		}
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$search = isset( $_GET['gs'] ) ? sanitize_text_field( wp_unslash( $_GET['gs'] ) ) : '';
 		$cat    = isset( $_GET['gcat'] ) ? sanitize_title( wp_unslash( $_GET['gcat'] ) ) : '';
 		// phpcs:enable
@@ -1207,7 +1239,7 @@ class MJC_Shortcodes {
 
 		echo '<div class="mjc-grid mjc-grid-2">';
 		foreach ( $articles as $article ) {
-			echo '<a class="mjc-card mjc-article-card" href="' . esc_url( get_permalink( $article->ID ) ) . '"><h3>' . esc_html( $article->post_title ) . '</h3><p>' . esc_html( wp_trim_words( wp_strip_all_tags( $article->post_content ), 16 ) ) . '</p></a>';
+			echo '<a class="mjc-card mjc-article-card" href="' . esc_url( add_query_arg( 'mjc_guide', (int) $article->ID, mjc_page_url( 'guide' ) ) ) . '"><h3>' . esc_html( $article->post_title ) . '</h3><p>' . esc_html( wp_trim_words( wp_strip_all_tags( $article->post_content ), 16 ) ) . '</p></a>';
 		}
 		echo '</div>';
 		if ( ! $articles ) {

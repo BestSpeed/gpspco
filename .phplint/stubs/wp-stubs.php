@@ -1139,6 +1139,8 @@ function load_plugin_textdomain( $domain, $deprecated = false, $plugin_rel_path 
 
 function flush_rewrite_rules( $hard = true ) {
 	$GLOBALS['mjc_stub']->flushed = true;
+	// وضعیت پست‌تایپ‌های ثبت‌شده در لحظه‌ی flush — برای تست ترتیب (flush باید بعد از ثبت CPTها باشد).
+	$GLOBALS['mjc_stub']->flush_history[] = ( isset( $GLOBALS['mjc_stub']->post_types ) && is_array( $GLOBALS['mjc_stub']->post_types ) ) ? array_keys( $GLOBALS['mjc_stub']->post_types ) : array();
 }
 
 function settings_errors() {}

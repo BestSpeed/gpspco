@@ -705,6 +705,41 @@ t( 'member dashboard renders + has dashboard widgets', function () {
 	not_contains( $html, 'کیف پول' );
 } );
 
+// راهنمای باشگاه: لینک مقاله‌ها نباید ۴۰۴ بدهد (نمای ?mjc_guide=ID).
+t( 'guide: listing links are rewrite-independent (?mjc_guide=ID)', function () {
+	$gid = wp_insert_post( array( 'post_title' => 'راهنمای آزمایشی عضویت', 'post_content' => 'متن آزمایشی راهنما برای عضویت', 'post_type' => 'mjc_guide', 'post_status' => 'publish' ) );
+	$out = MJC_Shortcodes::render_guide();
+	contains( $out, 'mjc_guide=' . (int) $gid, 'guide listing must link ?mjc_guide=ID' );
+	contains( $out, 'راهنمای آزمایشی عضویت', 'guide listing shows article title' );
+} );
+
+t( 'guide: ?mjc_guide=ID detail view (no 404 route)', function () {
+	$gid = wp_insert_post( array( 'post_title' => 'مقاله تفصیلی امتیاز', 'post_content' => 'جزئیات محاسبه امتیاز در متن مقاله', 'post_type' => 'mjc_guide', 'post_status' => 'publish' ) );
+	$_GET['mjc_guide'] = (string) $gid;
+	$out = MJC_Shortcodes::render_guide();
+	$_GET = array();
+	contains( $out, 'مقاله تفصیلی امتیاز', 'detail view shows title' );
+	contains( $out, 'بازگشت به راهنمای باشگاه', 'detail view has back link' );
+	contains( $out, 'جزئیات محاسبه امتیاز در متن مقاله', 'detail view shows content' );
+} );
+
+t( 'guide: unknown article id message', function () {
+	$_GET['mjc_guide'] = '999999';
+	$out = MJC_Shortcodes::render_guide();
+	$_GET = array();
+	contains( $out, 'مقاله موردنظر یافت نشد.', 'unknown guide id message' );
+} );
+
+t( 'guide: rewrite flush runs after ALL plugin CPT registrations', function () {
+	// اولین flush درخواست باید بعد از ثبت همه‌ی CPTها انجام شده باشد (mjc_guide هم ثبت شده باشد).
+	ok( ! empty( $GLOBALS['mjc_stub']->flush_history ), 'at least one flush ran' );
+	$first = $GLOBALS['mjc_stub']->flush_history[0];
+	foreach ( array( 'mjc_guide', 'mjc_faq', 'mjc_campaign', 'mjc_reward' ) as $pt ) {
+		ok( in_array( $pt, $first, true ), $pt . ' must be registered when rewrite flush runs' );
+	}
+	ok( get_option( 'mjc_rewrite_flush' ) === MJC_VERSION, 'flush version option must equal MJC_VERSION' );
+} );
+
 t( 'final invariants', function () {
 	eq( count( array_filter( (array) $GLOBALS['mjc_stub_sql_unknown'] ) ), 0, 'unknown SQL: ' . json_encode( $GLOBALS['mjc_stub_sql_unknown'], JSON_UNESCAPED_UNICODE ) );
 	eq( count( (array) $GLOBALS['mjc_stub_violations'] ), 0, 'column violations: ' . json_encode( $GLOBALS['mjc_stub_violations'], JSON_UNESCAPED_UNICODE ) );

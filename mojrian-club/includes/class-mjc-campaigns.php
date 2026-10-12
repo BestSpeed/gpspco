@@ -42,12 +42,8 @@ class MJC_Campaigns {
 			'has_archive'  => false,
 		) );
 
-		// رفع ۴۰۴ لینک‌های تک‌کمپین: قواعد بازنویسی باید بعد از ثبت CPT ساخته شوند.
-		// (flush هنگام فعال‌سازی، قبل از ثبت CPT اجرا می‌شود و قواعد «campaign» را نمی‌سازد.)
-		if ( get_option( 'mjc_rewrite_flush' ) !== MJC_VERSION ) {
-			flush_rewrite_rules( false );
-			update_option( 'mjc_rewrite_flush', MJC_VERSION );
-		}
+		// نکته: بازسازی قواعد بازنویسی در MJC_Install::maybe_flush (init با اولویت ۲۰،
+		// بعد از ثبت همه‌ی CPTها) انجام می‌شود تا قواعد راهنما/کمپین/جوایز با هم ساخته شوند.
 	}
 
 	/**
