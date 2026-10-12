@@ -43,9 +43,14 @@ class MJC_Shortcodes {
 		);
 		foreach ( $map as $tag => $method ) {
 			add_shortcode( $tag, function ( $atts = array() ) use ( $tag, $method ) {
+				$ob_level = ob_get_level();
 				try {
 					return (string) call_user_func( array( __CLASS__, $method ), $atts );
 				} catch ( Throwable $e ) {
+					// پاک‌سازی بافرهای بازمانده تا خروجی صفحه خراب نشود.
+					while ( ob_get_level() > $ob_level ) {
+						ob_end_clean();
+					}
 					error_log( '[mojrian-club] shortcode ' . $tag . ': ' . $e->getMessage() );
 					return '<div class="mjc-wrap"><div class="mjc-card"><div class="mjc-empty">خطا در نمایش این بخش. جزئیات در error_log سرور ثبت شد.</div></div></div>';
 				}
@@ -147,8 +152,8 @@ class MJC_Shortcodes {
 	 * @param string $submit_text متن دکمه.
 	 * @return string
 	 */
-	private static function form_close( $submit_text ) {
-		return '<div class="mjc-actions"><button type="submit" class="mjc-btn mjc-btn-primary">' . esc_html( $submit_text ) . '</button></div></form>';
+	private static function form_close( $submit_text, $actions_class = '' ) {
+		return '<div class="mjc-actions ' . esc_attr( $actions_class ) . '"><button type="submit" class="mjc-btn mjc-btn-primary">' . esc_html( $submit_text ) . '</button></div></form>';
 	}
 
 	/**
@@ -912,9 +917,9 @@ class MJC_Shortcodes {
 		ob_start();
 		echo '<div class="mjc-card">';
 		echo '<h1 class="mjc-center mjc-rewards-title">جایزه خود را انتخاب نمایید</h1>';
-		echo '<p class="mjc-center mjc-text-sm">برای دریافت جایزه روی دکمه زیر کلیک کنید</p>';
+		echo '<p class="mjc-center mjc-text-sm">یکی از جوایز را انتخاب نمایید و کلید ارسال را بزنید در صورت اینکه امتیاز شما به امتیاز جایزه انتخاب شده رسد پس در لیست ارسالی ها اضافه میشود</p>';
 
-		if ( ! $member->address || ! $member->postal_code ) {
+		if ( $member && ( ! $member->address || ! $member->postal_code ) ) {
 			echo '<p class="mjc-center mjc-text-sm" style="color:#b45309">برای ارسال جایزه، لطفاً «نشانی» و «کد پستی» را در بخش <a href="' . esc_url( mjc_page_url( 'profile' ) ) . '">تکمیل اطلاعات کاربر</a> وارد نمایید.</p>';
 		}
 
@@ -924,26 +929,24 @@ class MJC_Shortcodes {
 		foreach ( $items as $it ) {
 			$cost  = (int) get_post_meta( $it->ID, 'mjc_points_cost', true );
 			$stock = (int) get_post_meta( $it->ID, 'mjc_stock', true );
-			$icon  = (string) get_post_meta( $it->ID, 'mjc_icon', true );
 			$can   = ( $balance >= $cost && $stock > 0 );
 			echo '<label class="mjc-prize' . ( $can ? '' : ' mjc-prize-off' ) . '">';
 			echo '<input type="radio" name="reward_id" value="' . esc_attr( $it->ID ) . '"' . ( $can ? '' : ' disabled' ) . ' />';
 			echo '<span class="mjc-prize-icon">';
-			if ( $icon ) {
-				// آیکون از تصویر ماکت جدا شده؛ امتیاز داخل خود تصویر پخته است.
-				echo '<img src="' . esc_url( MJC_URL . ltrim( $icon, '/' ) ) . '" alt="' . esc_attr( $it->post_title ) . '" loading="lazy" width="180" height="180" />';
-			} elseif ( has_post_thumbnail( $it->ID ) ) {
-				echo get_the_post_thumbnail( $it->ID, 'thumbnail', array( 'class' => 'mjc-prize-img' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			} else {
-				echo '<span class="mjc-prize-fallback"><b class="mjc-prize-num">' . esc_html( mjc_num( number_format( $cost ) ) ) . '</b><i>' . esc_html( $label ) . ' ' . esc_html( mjc_num( number_format( $cost ) ) ) . '</i></span>';
-			}
+			$icon_url = MJC_Rewards::icon_url( $it );
+				if ( $icon_url ) {
+					// آیکون از تصویر ماکت جدا شده؛ امتیاز داخل خود تصویر پخته است.
+					echo '<img src="' . esc_url( $icon_url ) . '" alt="' . esc_attr( $it->post_title ) . '" loading="lazy" width="180" height="180" />';
+				} else {
+					echo '<span class="mjc-prize-fallback"><b class="mjc-prize-num">' . esc_html( mjc_num( number_format( $cost ) ) ) . '</b><i>' . esc_html( $label ) . ' ' . esc_html( mjc_num( number_format( $cost ) ) ) . '</i></span>';
+				}
 			echo '<span class="mjc-prize-check" aria-hidden="true">✓</span>';
 			echo '</span>';
 			echo '<span class="mjc-prize-name">' . esc_html( $it->post_title ) . '</span>';
 			echo '</label>';
 		}
 			echo '</div>';
-			echo self::form_close( 'تبدیل انجام شد' );
+			echo self::form_close( 'تبدیل انجام شد', 'mjc-actions-inline' );
 		} else {
 			echo '<p class="mjc-empty">در حال حاضر جایزه‌ای تعریف نشده است. مدیر سایت می‌تواند جوایز را از بخش «جوایز (فروشگاه امتیاز)» اضافه کند.</p>';
 		}

@@ -19,6 +19,7 @@ class MJC_Rewards {
 	 */
 	public static function hooks() {
 		add_action( 'init', array( __CLASS__, 'register_cpt' ) );
+		add_action( 'admin_init', array( __CLASS__, 'ensure_icons' ) );
 	}
 
 	/**
@@ -63,7 +64,34 @@ class MJC_Rewards {
 			wp_delete_post( (int) $oid, true );
 		}
 		// ترتیب نمایش = ترتیب خواندن ماکت (ردیف‌ها از راست به چپ).
-		$rewards = array(
+		$rewards = self::seed_catalog();
+		foreach ( $rewards as $i => $r ) {
+			$post_id = wp_insert_post( array(
+				'post_type'    => 'mjc_reward',
+				'post_status'  => 'publish',
+				'post_title'   => $r['title'],
+				'post_content' => $r['content'],
+				'menu_order'   => $i + 1,
+			) );
+			if ( $post_id && ! is_wp_error( $post_id ) ) {
+				update_post_meta( $post_id, 'mjc_points_cost', (int) $r['points'] );
+				update_post_meta( $post_id, 'mjc_stock', (int) $r['stock'] );
+				update_post_meta( $post_id, 'mjc_icon', sanitize_text_field( $r['icon'] ) );
+				self::attach_icon( (int) $post_id, sanitize_text_field( $r['icon'] ) );
+			}
+		}
+		update_option( 'mjc_rewards_seed_version', $seed_version );
+		update_option( 'mjc_rewards_seeded', 1 );
+	}
+
+	/**
+	 * کاتالوگ پیش‌فرض جوایز (منبع واحد برای seed و فهرست آیکون‌ها).
+	 *
+	 * @return array
+	 */
+	public static function seed_catalog() {
+		// ترتیب نمایش = ترتیب خواندن ماکت (ردیف‌ها از راست به چپ).
+		return array(
 			array( 'title' => 'متر', 'points' => 140, 'stock' => 40, 'icon' => 'assets/img/rewards/r01.png', 'content' => 'نوار متر ۵ متری مخصوص مجریان تأسیسات.' ),
 			array( 'title' => 'لوله اتو ۲۰', 'points' => 145, 'stock' => 40, 'icon' => 'assets/img/rewards/r02.png', 'content' => 'لوله اتو سایز ۲۰.' ),
 			array( 'title' => 'لوله اتو ۲۵', 'points' => 245, 'stock' => 30, 'icon' => 'assets/img/rewards/r03.png', 'content' => 'لوله اتو سایز ۲۵.' ),
@@ -90,22 +118,149 @@ class MJC_Rewards {
 			array( 'title' => 'کیف کامل ابزارآلات پیچ لازمه', 'points' => 3490, 'stock' => 5, 'icon' => 'assets/img/rewards/r24.png', 'content' => 'کیف کامل ابزارآلات.' ),
 			array( 'title' => 'دستگاه پرس لوله', 'points' => 11390, 'stock' => 3, 'icon' => 'assets/img/rewards/r25.png', 'content' => 'دستگاه پرس لوله حرفه‌ای.' ),
 		);
-		foreach ( $rewards as $i => $r ) {
-			$post_id = wp_insert_post( array(
-				'post_type'    => 'mjc_reward',
-				'post_status'  => 'publish',
-				'post_title'   => $r['title'],
-				'post_content' => $r['content'],
-				'menu_order'   => $i + 1,
-			) );
-			if ( $post_id && ! is_wp_error( $post_id ) ) {
-				update_post_meta( $post_id, 'mjc_points_cost', (int) $r['points'] );
-				update_post_meta( $post_id, 'mjc_stock', (int) $r['stock'] );
-				update_post_meta( $post_id, 'mjc_icon', sanitize_text_field( $r['icon'] ) );
+	}
+
+	/**
+	 * فهرست آیکون‌های آماده (برش‌خورده از ماکت) برای انتخاب در ویرایش جایزه.
+	 *
+	 * @return array مسیر نسبی => برچسب.
+	 */
+	public static function icon_catalog() {
+		$catalog = array();
+		foreach ( self::seed_catalog() as $r ) {
+			$catalog[ $r['icon'] ] = $r['title'] . ' (' . basename( $r['icon'], '.png' ) . ')';
+		}
+		return $catalog;
+	}
+
+	/**
+	 * نشانی نهایی آیکون/تصویر جایزه: تصویر شاخص، سپس آیکون بسته‌بندی‌شده.
+	 *
+	 * @param WP_Post|int $post شناسه یا شیء جایزه.
+	 * @return string
+	 */
+	public static function icon_url( $post ) {
+		$post = get_post( $post );
+		if ( ! $post ) {
+			return '';
+		}
+		$thumb = get_the_post_thumbnail_url( $post->ID, 'full' );
+		if ( $thumb ) {
+			return $thumb;
+		}
+		$icon = (string) get_post_meta( $post->ID, 'mjc_icon', true );
+		if ( '' === $icon ) {
+			return '';
+		}
+		if ( preg_match( '#^https?://#i', $icon ) ) {
+			return $icon;
+		}
+		return MJC_PLUGIN_URL . ltrim( $icon, '/' );
+	}
+
+	/**
+	 * پیوست آیکون بسته‌بندی‌شده به کتابخانه رسانه و تنظیم به‌عنوان تصویر شاخص جایزه.
+	 *
+	 * @param int    $post_id شناسه جایزه.
+	 * @param string $icon_rel مسیر نسبی آیکون در افزونه (مثل assets/img/rewards/r01.png).
+	 * @return bool
+	 */
+	public static function attach_icon( $post_id, $icon_rel ) {
+		$post_id = (int) $post_id;
+		$icon_rel = ltrim( (string) $icon_rel, '/' );
+		if ( '' === $icon_rel ) {
+			return false;
+		}
+		$src = MJC_PLUGIN_DIR . $icon_rel;
+		if ( ! is_file( $src ) ) {
+			return false;
+		}
+		if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+		}
+		$uploads = wp_upload_dir();
+		if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) {
+			return false;
+		}
+		$dir = trailingslashit( $uploads['basedir'] ) . 'mjc-icons';
+		if ( ! is_dir( $dir ) ) {
+			wp_mkdir_p( $dir );
+		}
+		$name = basename( $icon_rel );
+		$dest = trailingslashit( $dir ) . $name;
+		if ( ! is_file( $dest ) && ! copy( $src, $dest ) ) {
+			return false;
+		}
+
+		// استفاده از پیوست قبلی همین فایل (برای جلوگیری از تکرار در کتابخانه رسانه).
+		$att_id  = 0;
+		$existing = get_posts( array(
+			'post_type'      => 'attachment',
+			'post_status'    => 'any',
+			'numberposts'    => 1,
+			'fields'         => 'ids',
+			'meta_key'       => '_mjc_icon_file',
+			'meta_value'     => $name,
+			'no_found_rows'  => true,
+		) );
+		if ( $existing ) {
+			$att_id = (int) $existing[0];
+		} else {
+			$att_id = (int) wp_insert_attachment( array(
+				'post_mime_type' => 'image/png',
+				'post_title'     => sanitize_file_name( pathinfo( $name, PATHINFO_FILENAME ) ),
+				'post_status'    => 'inherit',
+			), $dest );
+			if ( ! $att_id ) {
+				return false;
+			}
+			update_post_meta( $att_id, '_mjc_icon_file', $name );
+			if ( function_exists( 'wp_generate_attachment_metadata' ) ) {
+				$meta = wp_generate_attachment_metadata( $att_id, $dest );
+				if ( $meta ) {
+					wp_update_attachment_metadata( $att_id, $meta );
+				}
 			}
 		}
-		update_option( 'mjc_rewards_seed_version', $seed_version );
-		update_option( 'mjc_rewards_seeded', 1 );
+		if ( ! set_post_thumbnail( $post_id, $att_id ) && (int) get_post_thumbnail_id( $post_id ) !== $att_id ) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * مهاجرت یک‌باره: آیکون بسته‌بندی‌شده‌ی جوایز پیش‌فرض را به‌عنوان تصویر شاخص ثبت کن.
+	 * بدون تخریب — جوایزی که تصویر شاخص دستی دارند دست نمی‌خورند.
+	 */
+	public static function ensure_icons() {
+		if ( (int) get_option( 'mjc_rewards_icons_version', 0 ) >= 1 ) {
+			return;
+		}
+		$pending = false;
+		$ids     = get_posts( array(
+			'post_type'      => 'mjc_reward',
+			'post_status'    => 'any',
+			'numberposts'    => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		) );
+		foreach ( $ids as $pid ) {
+			if ( get_post_thumbnail_id( (int) $pid ) ) {
+				continue;
+			}
+			$icon = (string) get_post_meta( (int) $pid, 'mjc_icon', true );
+			if ( '' === $icon ) {
+				continue;
+			}
+			if ( ! self::attach_icon( (int) $pid, $icon ) ) {
+				$pending = true;
+			}
+		}
+		if ( ! $pending ) {
+			update_option( 'mjc_rewards_icons_version', 1 );
+		}
 	}
 
 	/**

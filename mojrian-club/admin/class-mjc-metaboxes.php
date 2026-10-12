@@ -40,10 +40,26 @@ class MJC_Metaboxes {
 	 */
 	public static function reward_box( $post ) {
 		wp_nonce_field( 'mjc_meta', 'mjc_meta_nonce' );
-		$cost  = get_post_meta( $post->ID, 'mjc_points_cost', true );
-		$stock = get_post_meta( $post->ID, 'mjc_stock', true );
-		echo '<p><label>هزینه (امتیاز): <input type="number" name="mjc_points_cost" value="' . esc_attr( $cost ) . '" /></label></p>';
-		echo '<p><label>موجودی: <input type="number" name="mjc_stock" value="' . esc_attr( $stock ) . '" /></label></p>';
+		$cost     = get_post_meta( $post->ID, 'mjc_points_cost', true );
+		$stock    = get_post_meta( $post->ID, 'mjc_stock', true );
+		$icon_url = MJC_Rewards::icon_url( $post );
+		$icon_path = (string) get_post_meta( $post->ID, 'mjc_icon', true );
+		echo '<div class="mjc-reward-icon-wrap" style="display:flex;gap:14px;align-items:flex-start;">';
+		if ( $icon_url ) {
+			echo '<img src="' . esc_url( $icon_url ) . '" alt="" style="width:96px;height:96px;object-fit:contain;border:1px solid #ccd0d4;border-radius:10px;background:#fff;padding:6px;" />';
+		} else {
+			echo '<div style="width:96px;height:96px;border:1px dashed #ccd0d4;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#8c8f94;font-size:12px;text-align:center;">بدون<br>تصویر</div>';
+		}
+		echo '<div style="flex:1;">';
+		echo '<p style="margin:0 0 6px;"><label>هزینه (امتیاز): <input type="number" name="mjc_points_cost" value="' . esc_attr( $cost ) . '" /></label></p>';
+		echo '<p style="margin:0 0 6px;"><label>موجودی: <input type="number" name="mjc_stock" value="' . esc_attr( $stock ) . '" /></label></p>';
+		echo '<p style="margin:0 0 6px;"><label>آیکون آماده (برش‌خورده از ماکت): <select name="mjc_icon_preset"><option value="">— بدون تغییر —</option>';
+		foreach ( MJC_Rewards::icon_catalog() as $path => $label ) {
+			echo '<option value="' . esc_attr( $path ) . '" ' . selected( $icon_path, $path, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select></label></p>';
+		echo '<p class="description" style="margin:0;">برای تصویر دلخواه از جعبه «تصویر شاخص» استفاده کنید. با انتخاب آیکون آماده و ذخیره، همان آیکون به‌عنوان تصویر شاخص جایزه نیز ثبت می‌شود.</p>';
+		echo '</div></div>';
 	}
 
 	/**
@@ -132,6 +148,13 @@ class MJC_Metaboxes {
 		foreach ( $fields as $key => $sanitize ) {
 			if ( isset( $_POST[ $key ] ) ) {
 				update_post_meta( $post_id, $key, call_user_func( $sanitize, wp_unslash( $_POST[ $key ] ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			}
+		}
+		if ( isset( $_POST['mjc_icon_preset'] ) ) {
+			$preset = sanitize_text_field( wp_unslash( $_POST['mjc_icon_preset'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			if ( '' !== $preset && isset( MJC_Rewards::icon_catalog()[ $preset ] ) ) {
+				update_post_meta( $post_id, 'mjc_icon', $preset );
+				MJC_Rewards::attach_icon( (int) $post_id, $preset );
 			}
 		}
 		if ( isset( $_POST['mjc_questions'] ) ) {

@@ -149,6 +149,8 @@
 .mjc-check input:focus-visible { outline: 2px solid var(--mjc-primary); outline-offset: 2px; }
 .mjc-actions { margin-top: 18px; }
 .mjc-actions .mjc-btn { width: 100%; }
+.mjc-actions-inline { display: flex; justify-content: flex-end; }
+.mjc-actions-inline .mjc-btn { width: auto; border-radius: 6px; padding: 10px 28px; }
 
 /* جداول */
 .mjc-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
