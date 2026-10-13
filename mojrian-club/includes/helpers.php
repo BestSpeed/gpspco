@@ -206,6 +206,129 @@ function mjc_notice_url( $url, $code, $text = '' ) {
 /**
  * رندر پیام‌های وضعیت از query string.
  */
+/**
+ * یافتن کاربر وردپرس با شماره موبایل (حتی پس از تغییر نام کاربری).
+ *
+ * @param string $mobile شماره (هر قالبی).
+ * @return object|null
+ */
+function mjc_user_by_mobile( $mobile ) {
+	$mobile = mjc_normalize_mobile( $mobile );
+	if ( '' === $mobile ) {
+		return null;
+	}
+	// حالت پیش‌فرض: نام کاربری همان موبایل نرمال‌شده است.
+	$u = get_user_by( 'login', $mobile );
+	if ( $u ) {
+		return $u;
+	}
+	// پس از انتخاب نام کاربری دلخواه: جست‌وجو در ردیف عضویت.
+	$rows = MJC_DB::results( 'SELECT * FROM ' . mjc_table( 'members' ) . ' WHERE mobile = %s LIMIT 1', array( $mobile ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	if ( $rows && isset( $rows[0]->user_id ) ) {
+		$u = get_userdata( (int) $rows[0]->user_id );
+		if ( $u ) {
+			return $u;
+		}
+	}
+	return null;
+}
+
+/**
+ * تغییر «نام کاربری» حساب وردپرس.
+ *
+ * هسته‌ی وردپرس هنگام به‌روزرسانی، user_login را تغییر نمی‌دهد (فقط هنگام ساخت)؛
+ * بنابراین به‌روزرسانی مستقیم جدول کاربران + پاک‌سازی کش انجام می‌شود.
+ *
+ * @param int    $user_id شناسه‌ی کاربر.
+ * @param string $new_login نام کاربری جدید.
+ * @return true|WP_Error
+ */
+function mjc_set_user_login( $user_id, $new_login ) {
+	$user_id   = (int) $user_id;
+	$new_login = sanitize_user( (string) $new_login, true );
+	if ( strlen( $new_login ) < 3 ) {
+		return new WP_Error( 'mjc_fields', 'نام کاربری باید حداقل ۳ کاراکتر باشد (حروف انگلیسی، اعداد، خط تیره، زیرخط و @).' );
+	}
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return new WP_Error( 'mjc_access', 'کاربر یافت نشد.' );
+	}
+	if ( (string) $user->user_login === $new_login ) {
+		return true;
+	}
+	$other = get_user_by( 'login', $new_login );
+	if ( $other && (int) $other->ID !== $user_id ) {
+		return new WP_Error( 'mjc_exists', 'این نام کاربری قبلاً گرفته شده است.' );
+	}
+	global $wpdb;
+	$wpdb->update( $wpdb->users, array( 'user_login' => $new_login ), array( 'ID' => $user_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB
+	wp_cache_delete( $user->user_login, 'userlogins' );
+	wp_cache_delete( $new_login, 'userlogins' );
+	wp_cache_delete( $user_id, 'users' );
+	clean_user_cache( $user );
+	$user->user_login = $new_login;
+	return true;
+}
+
+/**
+ * ثبت اطلاعات فرم‌های باشگاه در «حساب کاربران وردپرس» (دیتابیس مشترک).
+ *
+ * همه‌ی اطلاعات عضو روی خودِ کاربر وردپرس (user meta + هسته) ذخیره می‌شود
+ * تا عضو باشگاه و کاربر سایت یک هویت واحد باشند.
+ *
+ * @param int   $user_id شناسه‌ی کاربر.
+ * @param array $data اطلاعات فرم.
+ * @return true
+ */
+function mjc_sync_wp_account( $user_id, $data ) {
+	$user_id = (int) $user_id;
+	if ( ! $user_id ) {
+		return false;
+	}
+	$map = array(
+		'full_name'        => 'mjc_full_name',
+		'mobile'           => 'mjc_mobile',
+		'national_code'    => 'mjc_national_code',
+		'birthdate'        => 'mjc_birthdate',
+		'province'         => 'mjc_province',
+		'city'             => 'mjc_city',
+		'address'          => 'mjc_address',
+		'work_address'     => 'mjc_workshop_address',
+		'workshop_address' => 'mjc_workshop_address',
+		'postal_code'      => 'mjc_postal_code',
+		'job_type'         => 'mjc_job_type',
+		'experience'       => 'mjc_experience',
+		'referrer_mobile'  => 'mjc_referrer_mobile',
+		'nationality'      => 'mjc_nationality',
+	);
+	foreach ( $map as $key => $meta_key ) {
+		if ( array_key_exists( $key, $data ) ) {
+			update_user_meta( $user_id, $meta_key, $data[ $key ] );
+		}
+	}
+	$first = isset( $data['first_name'] ) ? trim( (string) $data['first_name'] ) : '';
+	$last  = isset( $data['last_name'] ) ? trim( (string) $data['last_name'] ) : '';
+	$full  = isset( $data['full_name'] ) ? trim( (string) $data['full_name'] ) : '';
+	if ( '' === $first && '' === $last && '' !== $full ) {
+		$parts = preg_split( '/\s+/u', $full, 2 );
+		$first = isset( $parts[0] ) ? $parts[0] : '';
+		$last  = isset( $parts[1] ) ? $parts[1] : '';
+	}
+	if ( '' !== $first ) {
+		update_user_meta( $user_id, 'first_name', $first );
+	}
+	if ( '' !== $last ) {
+		update_user_meta( $user_id, 'last_name', $last );
+	}
+	if ( '' === $full && ( '' !== $first || '' !== $last ) ) {
+		$full = trim( $first . ' ' . $last );
+	}
+	if ( '' !== $full ) {
+		wp_update_user( array( 'ID' => $user_id, 'display_name' => $full ) );
+	}
+	return true;
+}
+
 function mjc_set_notice( $code, $text = '' ) {
 	$GLOBALS['mjc_notice_state'] = array( 'code' => $code, 'text' => $text );
 }

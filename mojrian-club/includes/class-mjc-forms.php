@@ -187,6 +187,9 @@ class MJC_Forms {
 			return new WP_Error( 'fields', 'شماره موبایل معرف معتبر نیست.' );
 		}
 		$ncode   = MJC_Validator::national_code( $ncode_raw );
+		$username = isset( $_POST['username'] ) ? sanitize_user( (string) wp_unslash( $_POST['username'] ), true ) : '';
+		$job_type = isset( $_POST['job_type'] ) ? sanitize_text_field( wp_unslash( $_POST['job_type'] ) ) : '';
+		$exp_raw  = isset( $_POST['experience'] ) ? mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['experience'] ) ) ) : '';
 		$address = isset( $_POST['address'] ) ? sanitize_text_field( wp_unslash( $_POST['address'] ) ) : '';
 		$postal  = isset( $_POST['postal_code'] ) ? mjc_to_en_digits( sanitize_text_field( wp_unslash( $_POST['postal_code'] ) ) ) : '';
 		$nat     = isset( $_POST['nationality'] ) ? sanitize_text_field( wp_unslash( $_POST['nationality'] ) ) : 'ایران';
@@ -215,6 +218,14 @@ class MJC_Forms {
 		}
 		if ( '' === $city || '' === $prov ) {
 			$errors[] = 'استان و شهر الزامی است.';
+		}
+		if ( strlen( $username ) < 3 ) {
+			$errors[] = 'نام کاربری باید حداقل ۳ کاراکتر باشد (حروف انگلیسی، اعداد، خط تیره، زیرخط و @).';
+		} elseif ( (string) get_userdata( $user_id )->user_login !== $username ) {
+			$taken = get_user_by( 'login', $username );
+			if ( $taken && (int) $taken->ID !== (int) $user_id ) {
+				$errors[] = 'این نام کاربری قبلاً گرفته شده است.';
+			}
 		}
 
 		// تصویر کاربر (اختیاری، حداکثر ۵۰۰ کیلوبایت).
@@ -254,10 +265,29 @@ class MJC_Forms {
 			'work_address'     => $work,
 			'postal_code'      => preg_replace( '/[^0-9]/', '', $postal ),
 			'workshop_address' => $work,
+			'job_type'         => $job_type,
+			'experience'       => (int) $exp_raw,
 		);
 		MJC_Members::upsert( $user_id, $data );
-		if ( ! empty( $data['full_name'] ) ) {
-			wp_update_user( array( 'ID' => $user_id, 'display_name' => $data['full_name'] ) );
+
+		// نام کاربری روی حساب وردپرس (دیتابیس مشترک کاربران).
+		$login_changed = false;
+		if ( '' !== $username ) {
+			$cur = get_userdata( $user_id );
+			if ( $cur && (string) $cur->user_login !== $username ) {
+				$res = mjc_set_user_login( $user_id, $username );
+				if ( is_wp_error( $res ) ) {
+					return $res;
+				}
+				$login_changed = true;
+			}
+		}
+
+		// ثبت همه‌ی اطلاعات فرم در حساب کاربران وردپرس (متا + نام نمایشی).
+		mjc_sync_wp_account( $user_id, $data );
+		if ( $login_changed ) {
+			// نشست فعلی با نام کاربری قبلی ساخته شده؛ برای حفظ ورود، کوکی تازه می‌شود.
+			wp_set_auth_cookie( $user_id, true );
 		}
 
 		// ذخیره‌ی تصویر کاربر.

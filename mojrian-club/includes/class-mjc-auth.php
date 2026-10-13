@@ -126,6 +126,18 @@ class MJC_Auth {
 
 		MJC_Audit::log( 'member_registered', 'member', $member_id, $mobile );
 
+		// ثبت اطلاعات در حساب کاربران وردپرس (هویت مشترک سایت و باشگاه).
+		mjc_sync_wp_account( $user_id, array(
+			'full_name'        => $full_name,
+			'mobile'           => $mobile,
+			'national_code'    => $national_code,
+			'province'         => $province,
+			'city'             => $city,
+			'job_type'         => $job_type,
+			'experience'       => $experience,
+			'workshop_address' => $address,
+		) );
+
 		// ورود خودکار پس از ثبت‌نام.
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id );
@@ -157,13 +169,15 @@ class MJC_Auth {
 			return $user;
 		}
 		$mobile = mjc_normalize_mobile( $username );
-		if ( ! $mobile || $mobile === trim( (string) $username ) ) {
+		if ( ! $mobile ) {
 			return $user;
 		}
-		if ( ! username_exists( $mobile ) ) {
+		// موبایل می‌تواند نام کاربری باشد یا پس از انتخاب نام کاربری دلخواه، شناسه‌ی ورود باشد.
+		$target = mjc_user_by_mobile( $mobile );
+		if ( ! $target ) {
 			return $user;
 		}
-		$found = wp_authenticate_username_password( null, $mobile, (string) $password );
+		$found = wp_authenticate_username_password( null, $target->user_login, (string) $password );
 		if ( $found && ! is_wp_error( $found ) ) {
 			return apply_filters( 'wp_authenticate_user', $found, (string) $password );
 		}
@@ -174,7 +188,8 @@ class MJC_Auth {
 		$username = trim( (string) $username );
 		$mobile   = mjc_normalize_mobile( $username );
 		if ( $mobile ) {
-			$username = $mobile;
+			$target = mjc_user_by_mobile( $mobile );
+			$username = $target ? $target->user_login : $mobile;
 		}
 		$user = wp_signon( array(
 			'user_login'    => $username,

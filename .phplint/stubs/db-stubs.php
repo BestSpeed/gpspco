@@ -11,6 +11,8 @@
 
 class wpdb {
 	public $prefix = 'wp_';
+	public $users = 'wp_users';
+	public $usermeta = 'wp_usermeta';
 	public $insert_id = 0;
 	public $rows_affected = 0;
 	public $num_rows = 0;
@@ -46,6 +48,21 @@ class wpdb {
 	}
 
 	public function update( $table, $data, $where, $format = null, $where_format = null ) {
+		// جدول کاربران وردپرس: به‌روزرسانی مستقیم user_login و ... روی فروشگاه کاربران استاب.
+		if ( 'wp_users' === $table || $this->users === $table ) {
+			$affected = 0;
+			$wid      = isset( $where['ID'] ) ? (int) $where['ID'] : 0;
+			if ( $wid && isset( $GLOBALS['mjc_stub']->users[ $wid ] ) ) {
+				$u = $GLOBALS['mjc_stub']->users[ $wid ];
+				foreach ( (array) $data as $c => $v ) {
+					$u->$c = $v;
+				}
+				mjc_stub_sync_user( $u );
+				$affected = 1;
+			}
+			$this->rows_affected = $affected;
+			return $affected;
+		}
 		$set = array();
 		foreach ( (array) $data as $c => $v ) {
 			$set[] = '`' . str_replace( '`', '', (string) $c ) . '` = ' . ( is_int( $v ) || is_float( $v ) ? (string) $v : "'" . addslashes( (string) $v ) . "'" );

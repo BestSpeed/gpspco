@@ -400,6 +400,24 @@ function update_user_meta( $user_id, $key, $value ) {
 	return true;
 }
 
+function sanitize_user( $username, $strict = false ) {
+	$username = (string) $username;
+	if ( $strict ) {
+		$username = preg_replace( '/[^a-zA-Z0-9 _.\-@]/', '', $username );
+	} else {
+		$username = preg_replace( '/[%<>\[\]]/', '', $username );
+	}
+	return $username;
+}
+
+function wp_cache_delete( $key, $group = '' ) {
+	return true;
+}
+
+function clean_user_cache( $user ) {
+	return true;
+}
+
 function wp_generate_password( $length = 12, $special = true, $extra = '' ) {
 	return substr( md5( uniqid( 'pw', true ) ), 0, (int) $length );
 }

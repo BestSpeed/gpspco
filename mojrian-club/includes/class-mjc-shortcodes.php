@@ -674,6 +674,18 @@ class MJC_Shortcodes {
 		}
 		$balance = MJC_Points::balance( $user_id );
 
+		// نام کاربری حساب وردپرس + اطلاعات ثبت‌نام (نام کامل → نام/نام خانوادگی).
+		$wp_user = get_userdata( $user_id );
+		$login   = $wp_user ? (string) $wp_user->user_login : '';
+		$first   = (string) $member->first_name;
+		$last    = (string) $member->last_name;
+		if ( '' === trim( $first . $last ) && ! empty( $member->full_name ) ) {
+			$parts = preg_split( '/\s+/u', trim( (string) $member->full_name ), 2 );
+			$first = isset( $parts[0] ) ? $parts[0] : '';
+			$last  = isset( $parts[1] ) ? $parts[1] : '';
+		}
+		$work_val = ( ! empty( $member->work_address ) ) ? (string) $member->work_address : (string) $member->workshop_address;
+
 		// انتخاب‌های تاریخ تولد (شمسی).
 		$days   = array( '' => 'روز' );
 		$months = array( '' => 'ماه', 1 => 'فروردین', 2 => 'اردیبهشت', 3 => 'خرداد', 4 => 'تیر', 5 => 'مرداد', 6 => 'شهریور', 7 => 'مهر', 8 => 'آبان', 9 => 'آذر', 10 => 'دی', 11 => 'بهمن', 12 => 'اسفند' );
@@ -696,11 +708,15 @@ class MJC_Shortcodes {
 		echo self::form_open( 'profile', 'mjc_profile' );
 		echo '<div class="mjc-mock-form" dir="rtl">';
 
-		// نام و نام خانوادگی — دو فیلد کنار هم (نام در سمت راست).
+		// نام کاربری — روی حساب وردپرس می‌نشیند (هویت مشترک سایت و باشگاه).
+		echo '<div class="mjc-mf-label">نام کاربری <em>(ضروری)</em></div>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="username" value="' . esc_attr( $login ) . '" autocomplete="username" required /></div>';
+
+		// نام و نام خانوادگی — دو فیلد کنار هم (نام در سمت راست)؛ از اطلاعات ثبت‌نام پر می‌شود.
 		echo '<div class="mjc-mf-label">نام و نام خانوادگی <em>(ضروری)</em></div>';
 		echo '<div class="mjc-mf-row mjc-mf-2">';
-		echo '<div class="mjc-mf-col"><label for="f_first_name">نام</label><input type="text" name="first_name" id="f_first_name" value="' . esc_attr( $member->first_name ) . '" required /></div>';
-		echo '<div class="mjc-mf-col"><label for="f_last_name">نام خانوادگی</label><input type="text" name="last_name" id="f_last_name" value="' . esc_attr( $member->last_name ) . '" required /></div>';
+		echo '<div class="mjc-mf-col"><label for="f_first_name">نام</label><input type="text" name="first_name" id="f_first_name" value="' . esc_attr( $first ) . '" required /></div>';
+		echo '<div class="mjc-mf-col"><label for="f_last_name">نام خانوادگی</label><input type="text" name="last_name" id="f_last_name" value="' . esc_attr( $last ) . '" required /></div>';
 		echo '</div>';
 
 		// کد ملی — ورودی باریک راست‌چین.
@@ -715,6 +731,23 @@ class MJC_Shortcodes {
 		echo '<div class="mjc-mf-col"><div class="mjc-mf-label">شماره موبایل معرف</div>';
 		echo '<p class="mjc-mf-hint">لطفا شماره موبایل معرف خود را وارد نمایید</p>';
 		echo '<input type="tel" name="referrer_mobile" value="' . esc_attr( $member->referrer_mobile ) . '" /></div>';
+		echo '</div>';
+
+		// نوع فعالیت و سابقه کار — از اطلاعات ثبت‌نام.
+		echo '<div class="mjc-mf-row mjc-mf-2">';
+		echo '<div class="mjc-mf-col"><div class="mjc-mf-label">نوع فعالیت <em>(ضروری)</em></div>';
+		echo '<select name="job_type" required><option value="">انتخاب کنید</option>';
+		$jobs = array( 'water' => 'آب و فاضلاب', 'gas' => 'گاز', 'heating' => 'شوفاژ و تأسیسات حرارتی', 'hvac' => 'تهویه مطبوع', 'other' => 'سایر' );
+		foreach ( $jobs as $jkey => $jlabel ) {
+			echo '<option value="' . esc_attr( $jkey ) . '"' . selected( (string) $member->job_type, $jkey, false ) . '>' . esc_html( $jlabel ) . '</option>';
+		}
+		// اگر مقدار ثبت‌شده در فهرست نبود، به‌صورت برگزیده نمایش داده شود تا اطلاعات پنهان نماند.
+		if ( '' !== (string) $member->job_type && ! isset( $jobs[ (string) $member->job_type ] ) ) {
+			echo '<option value="' . esc_attr( (string) $member->job_type ) . '" selected>' . esc_html( (string) $member->job_type ) . '</option>';
+		}
+		echo '</select></div>';
+		echo '<div class="mjc-mf-col"><div class="mjc-mf-label">سابقه کار (سال)</div>';
+		echo '<input type="number" name="experience" min="0" value="' . esc_attr( (string) (int) $member->experience ) . '" /></div>';
 		echo '</div>';
 
 		// تاریخ تولد — سه سلکت کوچک با برچسب زیر آن‌ها.
@@ -765,7 +798,7 @@ class MJC_Shortcodes {
 		// اطلاعات پستی.
 		echo '<p class="mjc-form-note">برای ارسال بسته های پستی</p>';
 		echo '<div class="mjc-mf-label">نشانی دقیق محل کار با کدپستی</div>';
-		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="work_address" value="' . esc_attr( $member->work_address ) . '" /></div>';
+		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="work_address" value="' . esc_attr( $work_val ) . '" /></div>';
 		echo '<div class="mjc-mf-label">کد پستی</div>';
 		echo '<div class="mjc-mf-row"><input class="mjc-mf-narrow" type="text" name="postal_code" inputmode="numeric" value="' . esc_attr( $member->postal_code ) . '" /></div>';
 
@@ -781,7 +814,7 @@ class MJC_Shortcodes {
 		echo self::form_close( 'ارسال اطلاعات' );
 		echo '</div>';
 
-		return self::member_layout( ob_get_clean() );
+		return self::member_layout( ob_get_clean(), false ); // تکمیل اطلاعات برای عضو در انتظار تأیید هم در دسترس است.
 	}
 
 

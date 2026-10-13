@@ -541,6 +541,7 @@ t( 'profile: submit saves avatar and shows it in sidebar context', function () {
 	wp_set_current_user( $userA_id );
 	$_POST = array(
 		'mjc_nonce'    => wp_create_nonce( 'mjc_profile' ),
+		'username'     => 'member-a',
 		'first_name'   => 'علی',
 		'last_name'    => 'رضایی',
 		'mobile'       => '09123456789',
@@ -947,6 +948,101 @@ t( 'v1.6.14: register and login pages render notices (success + failure)', funct
 	mjc_set_notice( 'error', 'پیام خطای آزمایشی' );
 	$out = MJC_Shortcodes::render_login();
 	contains( $out, 'پیام خطای آزمایشی', 'inline notice must render on the login page' );
+} );
+
+// 1.6.15: نام کاربری در «تکمیل اطلاعات کاربر» + نمایش اطلاعات ثبت‌نام + حساب مشترک وردپرس.
+t( 'v1.6.15: profile form shows registration data and asks for username', function () {
+	wp_set_current_user( 0 );
+	$uid = mjc_test_register( '09127770001', 'علی رضایی' );
+	wp_set_current_user( $uid );
+	$out = MJC_Shortcodes::render_profile();
+	contains( $out, 'name="username"', 'profile form must ask for a username' );
+	contains( $out, 'name="username" value="989127770001"', 'username must be prefilled with the WP login' );
+	contains( $out, 'value="علی"', 'registration first name must be shown' );
+	contains( $out, 'value="رضایی"', 'registration last name must be shown' );
+	contains( $out, 'value="0012345678"', 'registration national code must be shown' );
+	contains( $out, 'value="989127770001"', 'registration mobile must be shown' );
+	contains( $out, 'value="تهران"', 'registration province/city must be shown' );
+	contains( $out, 'name="job_type"', 'job type field must exist (from registration)' );
+	contains( $out, 'value="installer" selected', 'registration job type must be selected' );
+	contains( $out, 'name="experience"', 'experience field must exist (from registration)' );
+	wp_set_current_user( 0 );
+} );
+
+t( 'v1.6.15: profile saves username and data to the WP account (shared identity)', function () {
+	wp_set_current_user( 0 );
+	$uid = mjc_test_register( '09127770002', 'مریم احمدی' );
+	wp_set_current_user( $uid );
+	$_POST = array(
+		'mjc_form'        => 'profile',
+		'mjc_nonce'       => wp_create_nonce( 'mjc_profile' ),
+		'username'        => 'maryam.ahmadi',
+		'first_name'      => 'مریم',
+		'last_name'       => 'احمدی',
+		'national_code'   => '1234567890',
+		'mobile'          => '09127770002',
+		'referrer_mobile' => '',
+		'birth_day'       => '1',
+		'birth_month'     => '1',
+		'birth_year'      => '1370',
+		'nationality'     => 'ایران',
+		'province'        => 'تهران',
+		'city'            => 'تهران',
+		'address'         => 'تهران، خیابان آزادی، پلاک ۱',
+		'work_address'    => 'تهران، کارگاه مرکزی',
+		'postal_code'     => '1234567890',
+		'job_type'        => 'gas',
+		'experience'      => '5',
+	);
+	$r = MJC_Forms::form_profile();
+	eq( 'ok', $r, 'profile save must succeed' );
+	// نام کاربری روی حساب وردپرس.
+	$u = get_user_by( 'login', 'maryam.ahmadi' );
+	ok( $u && (int) $u->ID === (int) $uid, 'user_login must be the chosen username' );
+	// اطلاعات فرم در حساب وردپرس (متا + نام نمایشی).
+	eq( '989127770002', (string) get_user_meta( $uid, 'mjc_mobile', true ), 'mobile must live on the WP account' );
+	eq( '1234567890', (string) get_user_meta( $uid, 'mjc_national_code', true ), 'national code must live on the WP account' );
+	eq( 'مریم', (string) get_user_meta( $uid, 'first_name', true ), 'first_name meta must be set' );
+	eq( 'احمدی', (string) get_user_meta( $uid, 'last_name', true ), 'last_name meta must be set' );
+	eq( 'مریم احمدی', (string) get_userdata( $uid )->display_name, 'display_name must be the full name' );
+	eq( 'تهران، کارگاه مرکزی', (string) get_user_meta( $uid, 'mjc_workshop_address', true ), 'workshop address must live on the WP account' );
+	// ورود با موبایل حتی پس از تغییر نام کاربری.
+	$m = mjc_user_by_mobile( '09127770002' );
+	ok( $m && (int) $m->ID === (int) $uid, 'mobile lookup must still resolve the account' );
+	// ردیف عضویت هم به‌روز است.
+	$row = MJC_Members::get_by_user( $uid );
+	ok( $row && 'gas' === (string) $row->job_type && 5 === (int) $row->experience, 'member row must carry job_type and experience' );
+	$_POST = array();
+	wp_set_current_user( 0 );
+} );
+
+t( 'v1.6.15: taken username is rejected and register stores data on the WP account', function () {
+	wp_set_current_user( 0 );
+	$uid = mjc_test_register( '09127770003', 'رضا کریمی' );
+	wp_set_current_user( $uid );
+	$_POST = array(
+		'mjc_form'      => 'profile',
+		'mjc_nonce'     => wp_create_nonce( 'mjc_profile' ),
+		'username'      => 'maryam.ahmadi', // گرفته‌شده توسط کاربر قبلی.
+		'first_name'    => 'رضا',
+		'last_name'     => 'کریمی',
+		'national_code' => '1234567890',
+		'mobile'        => '09127770003',
+		'birth_day'     => '2',
+		'birth_month'   => '2',
+		'birth_year'    => '1365',
+		'province'      => 'اصفهان',
+		'city'          => 'اصفهان',
+		'address'       => 'اصفهان، خیابان چهارباغ',
+	);
+	$r = MJC_Forms::form_profile();
+	ok( is_wp_error( $r ), 'taken username must be rejected' );
+	contains( $r->get_error_message(), 'قبلاً گرفته شده', 'error must explain the username is taken' );
+	// ثبت‌نام باید اطلاعات را از همان ابتدا روی حساب وردپرس نشانده باشد.
+	eq( '989127770003', (string) get_user_meta( $uid, 'mjc_mobile', true ), 'register must store mobile on the WP account' );
+	eq( 'رضا کریمی', (string) get_userdata( $uid )->display_name, 'register must set display_name' );
+	$_POST = array();
+	wp_set_current_user( 0 );
 } );
 
 t( 'final invariants', function () {
