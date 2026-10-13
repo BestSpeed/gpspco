@@ -882,6 +882,73 @@ t( 'v1.6.12: site login accepts mobile in any common format', function () {
 	ok( is_wp_error( $bad ) || ! $bad, 'wrong password must fail' );
 } );
 
+// 1.6.14: فرم ثبت‌نام باید پیام بدهد، مقادیر را نگه دارد و عضو را واقعاً ثبت کند.
+t( 'v1.6.14: full register form flow creates member and lands on dashboard with message', function () {
+	wp_set_current_user( 0 );
+	$_POST = array(
+		'mjc_form' => 'register',
+		'mjc_nonce' => wp_create_nonce( 'mjc_register' ),
+		'accept_rules' => '1',
+		'full_name' => 'کاربر تست فرم',
+		'mobile' => '09126660001',
+		'national_code' => '0012345701',
+		'province' => 'تهران',
+		'city' => 'تهران',
+		'job_type' => 'gas',
+		'experience' => '3',
+		'workshop_address' => 'تهران، خیابان آزمایش',
+		'password' => 'MyPass12345',
+		'referral_code' => '',
+	);
+	$r = MJC_Forms::form_register();
+	ok( is_array( $r ) && isset( $r['redirect'] ), 'register form must redirect after success' );
+	contains( $r['redirect'], 'mjc_notice=registered', 'redirect must carry the registered message' );
+	ok( 0 === strpos( $r['redirect'], mjc_page_url( 'dashboard' ) ), 'redirect must land on the dashboard page' );
+	$u = get_user_by( 'login', '989126660001' );
+	ok( (bool) $u, 'WP user must be created' );
+	$m = $u ? MJC_Members::get_by_user( $u->ID ) : null;
+	ok( $m && 'pending' === $m->status, 'member row must exist (pending until approval)' );
+	$_POST = array();
+} );
+
+t( 'v1.6.14: register error shows message and keeps form values', function () {
+	wp_set_current_user( 0 );
+	$_POST = array(
+		'mjc_form' => 'register',
+		'mjc_nonce' => wp_create_nonce( 'mjc_register' ),
+		'full_name' => 'نام تست فرم',
+		'mobile' => '09126660002',
+		'national_code' => '0012345702',
+		'province' => 'اصفهان',
+		'password' => 'MyPass99999',
+		// accept_rules ارسال نشده → خطا
+	);
+	MJC_Forms::handle(); // نباید exit/ریدایرکت کند — خطا بدون ریدایرکت برمی‌گردد.
+	$_GET['mjc_notice'] = 'should_not_be_needed';
+	$out = MJC_Shortcodes::render_register();
+	$_GET = array();
+	contains( $out, 'پذیرش قوانین و حریم خصوصی الزامی است.', 'error message must be visible on the register page' );
+	contains( $out, 'نام تست فرم', 'form must keep the entered values' );
+	contains( $out, 'اصفهان', 'province must be kept' );
+	not_contains( $out, 'MyPass99999', 'password must never be repopulated' );
+	$_POST = array();
+} );
+
+t( 'v1.6.14: register and login pages render notices (success + failure)', function () {
+	wp_set_current_user( 0 );
+	$_GET['mjc_notice'] = 'registered';
+	$out = MJC_Shortcodes::render_register();
+	contains( $out, 'ثبت‌نام انجام شد', 'register page must show the registered message' );
+	$_GET['mjc_notice'] = 'login_failed';
+	$out = MJC_Shortcodes::render_login();
+	contains( $out, 'نام کاربری یا رمز عبور اشتباه است', 'login page must show the failure message' );
+	$_GET = array();
+	// پیام درون‌خطی (مسیر خطای بدون ریدایرکت).
+	mjc_set_notice( 'error', 'پیام خطای آزمایشی' );
+	$out = MJC_Shortcodes::render_login();
+	contains( $out, 'پیام خطای آزمایشی', 'inline notice must render on the login page' );
+} );
+
 t( 'final invariants', function () {
 	eq( count( array_filter( (array) $GLOBALS['mjc_stub_sql_unknown'] ) ), 0, 'unknown SQL: ' . json_encode( $GLOBALS['mjc_stub_sql_unknown'], JSON_UNESCAPED_UNICODE ) );
 	eq( count( (array) $GLOBALS['mjc_stub_violations'] ), 0, 'column violations: ' . json_encode( $GLOBALS['mjc_stub_violations'], JSON_UNESCAPED_UNICODE ) );

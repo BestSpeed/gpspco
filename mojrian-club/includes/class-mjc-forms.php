@@ -44,6 +44,11 @@ class MJC_Forms {
 
 		$result = self::$method();
 		if ( is_wp_error( $result ) ) {
+			// ورود/ثبت‌نام: بدون ریدایرکت تا مقادیر فرم پاک نشود و پیام خطا همان‌جا دیده شود.
+			if ( 'register' === $form || 'login' === $form ) {
+				mjc_set_notice( 'error', $result->get_error_message() );
+				return;
+			}
 			$back = mjc_notice_url( $back, 'error', $result->get_error_message() );
 		} elseif ( is_array( $result ) && isset( $result['redirect'] ) ) {
 			$back = $result['redirect'];
@@ -102,10 +107,11 @@ class MJC_Forms {
 			return $result;
 		}
 		$member = MJC_Members::get_by_user( $result );
+		// همیشه به داشبورد با پیام روشن؛ برگشتن به صفحه‌ی فرم باعث سردرگمی بود.
 		if ( $member && 'approved' === $member->status ) {
-			return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'registered' ) );
+			return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'ok' ) );
 		}
-		return 'registered';
+		return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'registered' ) );
 	}
 
 	/**
@@ -129,7 +135,7 @@ class MJC_Forms {
 		if ( $member && 'approved' === $member->status ) {
 			return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'ok' ) );
 		}
-		return 'not_approved';
+		return array( 'redirect' => mjc_notice_url( mjc_page_url( 'dashboard' ), 'not_approved' ) );
 	}
 
 	/**

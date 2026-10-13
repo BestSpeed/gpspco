@@ -206,7 +206,21 @@ function mjc_notice_url( $url, $code, $text = '' ) {
 /**
  * رندر پیام‌های وضعیت از query string.
  */
+function mjc_set_notice( $code, $text = '' ) {
+	$GLOBALS['mjc_notice_state'] = array( 'code' => $code, 'text' => $text );
+}
+
 function mjc_render_notice() {
+	// پیام درون‌خطی (مسیر خطای فرم‌های ورود/ثبت‌نام بدون ریدایرکت).
+	if ( ! empty( $GLOBALS['mjc_notice_state'] ) && is_array( $GLOBALS['mjc_notice_state'] ) ) {
+		$state = $GLOBALS['mjc_notice_state'];
+		unset( $GLOBALS['mjc_notice_state'] );
+		$map = array( 'error' => 'error', 'ok' => 'success', 'registered' => 'success', 'not_approved' => 'warning' );
+		$cls = isset( $map[ $state['code'] ] ) ? $map[ $state['code'] ] : 'info';
+		$msg = ( '' !== (string) $state['text'] ) ? $state['text'] : $state['code'];
+		printf( '<div class="mjc-notice mjc-notice-%s">%s</div>', esc_attr( $cls ), esc_html( $msg ) );
+		return;
+	}
 	if ( empty( $_GET['mjc_notice'] ) ) {
 		return;
 	}
