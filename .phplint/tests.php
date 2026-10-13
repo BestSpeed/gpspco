@@ -823,6 +823,24 @@ t( 'v1.6.10: guide article, login and secondary page titles are 20px', function 
 	not_contains( $out, 'mjc-guide-hero h1', 'guide listing keeps hero markup' );
 } );
 
+// 1.6.11: متن داشبورد باید دقیقاً متن تصویر حساب کاربری باشد.
+t( 'v1.6.11: dashboard text matches the account text exactly', function () {
+	global $userA_id;
+	wp_set_current_user( $userA_id );
+	$out = MJC_Shortcodes::render_dashboard();
+	contains( $out, 'به حساب کاربری خود خوش آمدید', 'title' );
+	contains( $out, 'هدف از ایجاد باشگاه مجریان</h2>', 'subtitle 1 exact' );
+	contains( $out, 'باشگاه مجریان با هدف ارج‌نهادن به تلاش مجریان گرامی ایجاد شده است، امتیازاتی که از طریق پروژه به دست می‌آورید در قالب هدایا و جوایز کاربردی به شما بازپرداخت می‌شود. همین حالا می‌توانید از سفرهای رویایی استفاده کنید.', 'paragraph exact' );
+	contains( $out, 'توضیحات کلی بخش‌های حساب کاربری', 'subtitle 2 exact' );
+	contains( $out, '<b>تکمیل اطلاعات کاربر:</b> برای ارسال دقیق بسته‌های پستی، لطفا اطلاعات شخصی خود را کامل نمایید.', 'item 1 exact' );
+	contains( $out, '<b>ثبت پروژه تاسیسات:</b> با ثبت هر پروژه تاسیساتی، پروژه شما بررسی و بر اساس مبلغ یا متراژ به شما امتیاز تعلق می‌گیرد.', 'item 2 exact' );
+	contains( $out, '<b>تبدیل امتیازات به جوایز:</b> در این بخش با توجه به امتیازی که تاکنون کسب کرده‌اید، جایزه مورد نظر خود را انتخاب نمایید.', 'item 3 exact' );
+	contains( $out, '<b>خروج از حساب کاربری:</b> با استفاده از گزینه خروج، از حساب کاربری خود خارج می‌شوید.', 'item 4 exact' );
+	not_contains( $out, 'پخش هدایایی تبلیغاتی', 'old paragraph gone' );
+	not_contains( $out, 'توضیحات کلید های قسمت حساب کاربری', 'old subtitle gone' );
+	not_contains( $out, 'خروج شدن از قسمت', 'old item gone' );
+} );
+
 t( 'final invariants', function () {
 	eq( count( array_filter( (array) $GLOBALS['mjc_stub_sql_unknown'] ) ), 0, 'unknown SQL: ' . json_encode( $GLOBALS['mjc_stub_sql_unknown'], JSON_UNESCAPED_UNICODE ) );
 	eq( count( (array) $GLOBALS['mjc_stub_violations'] ), 0, 'column violations: ' . json_encode( $GLOBALS['mjc_stub_violations'], JSON_UNESCAPED_UNICODE ) );
