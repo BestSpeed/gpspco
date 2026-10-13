@@ -806,11 +806,14 @@ t( 'v1.6.10: campaign title is below the campaign image and 30px bold', function
 
 t( 'v1.6.10: guide article, login and secondary page titles are 30px bold', function () {
 	$css = file_get_contents( '/plugin/assets/css/mojrian-club.css' );
-	contains( $css, '.mjc-guide-article h1, .mjc-article-card h3 { font-size: 30px; font-weight: 700; }', 'guide article titles must be 30px bold' );
+	contains( $css, '.mjc-guide-article h1 { font-size: 30px; font-weight: 700; }', 'guide ARTICLE PAGE title must be 30px bold' );
+	// 1.6.13: عنوان‌های صفحه‌ی اصلی راهنمای باشگاه (کارت‌های فهرست) به حالت قبلی برگشته‌اند.
+	not_contains( $css, '.mjc-article-card h3 { font-size', 'guide LISTING card titles must not have a forced size (previous state)' );
+	contains( $css, '.mjc-article-card h3 { color: var(--mjc-primary); margin-bottom: 8px; }', 'guide listing card titles keep original style' );
 	contains( $css, '.mjc-page-title, h1.mjc-page-title, h2.mjc-page-title { font-size: 30px; font-weight: 700; }', 'page-title class must be 30px bold' );
 	contains( $css, '.mjc-acc-title, .mjc-rewards-title, .mjc-profile-head { font-size: 30px; font-weight: 700; }', 'dashboard/rewards/profile titles must be 30px bold' );
 	// عنوان هیروی راهنمای باشگاه (صفحه‌ی اصلی) نباید ۲۰ شود.
-	not_contains( $css, '.mjc-guide-hero h1, .mjc-article-card h3', 'guide hero must not be in the 20px rule' );
+	not_contains( $css, '.mjc-guide-hero h1, .mjc-article-card h3', 'guide hero and listing cards must not be in the size rule' );
 	wp_set_current_user( 0 );
 	$out = MJC_Shortcodes::render_login();
 	contains( $out, 'mjc-center mjc-page-title', 'login title must carry the 20px class' );
