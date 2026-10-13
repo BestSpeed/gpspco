@@ -146,7 +146,7 @@ class MJC_Rewards {
 		}
 		$thumb = get_the_post_thumbnail_url( $post->ID, 'full' );
 		if ( $thumb ) {
-			return $thumb;
+			return self::icon_cache_bust( $thumb );
 		}
 		$icon = (string) get_post_meta( $post->ID, 'mjc_icon', true );
 		if ( '' === $icon ) {
@@ -155,7 +155,21 @@ class MJC_Rewards {
 		if ( preg_match( '#^https?://#i', $icon ) ) {
 			return $icon;
 		}
-		return MJC_PLUGIN_URL . ltrim( $icon, '/' );
+		$url = MJC_PLUGIN_URL . ltrim( $icon, '/' );
+		return self::icon_cache_bust( $url );
+	}
+
+	/**
+	 * شکستن کش مرورگر برای نسخه‌های آپلودشده‌ی آیکون‌ها (/mjc-icons/).
+	 *
+	 * @param string $url نشانی.
+	 * @return string
+	 */
+	public static function icon_cache_bust( $url ) {
+		if ( false !== strpos( $url, '/mjc-icons/' ) ) {
+			$url = add_query_arg( 'mjc_ic', (int) get_option( 'mjc_rewards_icons_version', 1 ), $url );
+		}
+		return $url;
 	}
 
 	/**
@@ -190,7 +204,16 @@ class MJC_Rewards {
 		}
 		$name = basename( $icon_rel );
 		$dest = trailingslashit( $dir ) . $name;
-		if ( ! is_file( $dest ) && ! copy( $src, $dest ) ) {
+		$refreshed = false;
+		if ( is_file( $dest ) ) {
+			// اگر نسخه‌ی آپلودشده با فایل فعلی افزونه فرق کند (مثلاً پس از جایگزینی آیکون‌ها)، تازه می‌شود.
+			if ( md5_file( $src ) !== md5_file( $dest ) ) {
+				if ( ! copy( $src, $dest ) ) {
+					return false;
+				}
+				$refreshed = true;
+			}
+		} elseif ( ! copy( $src, $dest ) ) {
 			return false;
 		}
 
@@ -207,6 +230,12 @@ class MJC_Rewards {
 		) );
 		if ( $existing ) {
 			$att_id = (int) $existing[0];
+			if ( $refreshed && function_exists( 'wp_generate_attachment_metadata' ) ) {
+				$meta = wp_generate_attachment_metadata( $att_id, $dest );
+				if ( $meta ) {
+					wp_update_attachment_metadata( $att_id, $meta );
+				}
+			}
 		} else {
 			$att_id = (int) wp_insert_attachment( array(
 				'post_mime_type' => 'image/png',
@@ -235,7 +264,7 @@ class MJC_Rewards {
 	 * بدون تخریب — جوایزی که تصویر شاخص دستی دارند دست نمی‌خورند.
 	 */
 	public static function ensure_icons() {
-		if ( (int) get_option( 'mjc_rewards_icons_version', 0 ) >= 1 ) {
+		if ( (int) get_option( 'mjc_rewards_icons_version', 0 ) >= 2 ) {
 			return;
 		}
 		$pending = false;
@@ -247,19 +276,24 @@ class MJC_Rewards {
 			'no_found_rows'  => true,
 		) );
 		foreach ( $ids as $pid ) {
-			if ( get_post_thumbnail_id( (int) $pid ) ) {
-				continue;
-			}
 			$icon = (string) get_post_meta( (int) $pid, 'mjc_icon', true );
 			if ( '' === $icon ) {
-				continue;
+				continue; // تصویر دلخواه مدیر — دست نمی‌خورد.
+			}
+			$thumb_id = (int) get_post_thumbnail_id( (int) $pid );
+			if ( $thumb_id ) {
+				// فقط آیکون‌های خود افزونه تازه می‌شوند؛ تصویر شاخصِ دلخواهِ مدیر حفظ می‌شود.
+				$is_ours = (string) get_post_meta( $thumb_id, '_mjc_icon_file', true );
+				if ( '' === $is_ours ) {
+					continue;
+				}
 			}
 			if ( ! self::attach_icon( (int) $pid, $icon ) ) {
 				$pending = true;
 			}
 		}
 		if ( ! $pending ) {
-			update_option( 'mjc_rewards_icons_version', 1 );
+			update_option( 'mjc_rewards_icons_version', 2 );
 		}
 	}
 

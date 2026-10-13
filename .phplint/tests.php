@@ -423,7 +423,7 @@ t( 'rewards: catalog seeded (25 items, points cost > 0)', function () {
 
 t( 'rewards: icons ensured and idempotent (non-destructive)', function () {
 	MJC_Rewards::ensure_icons();
-	eq( (int) get_option( 'mjc_rewards_icons_version', 0 ), 1, 'icons version not set' );
+	eq( (int) get_option( 'mjc_rewards_icons_version', 0 ), 2, 'icons version not set' );
 	$catalog = get_posts( array( 'post_type' => 'mjc_reward', 'numberposts' => 30, 'post_status' => 'any' ) );
 	$with_thumb = 0;
 	$mtimes = array();
@@ -1105,6 +1105,49 @@ t( 'v1.6.17: campaign end date field is Jalali in admin settings', function () {
 	eq( '2026-12-31', (string) get_post_meta( $cid, 'mjc_end_date', true ), 'legacy Gregorian input must stay Gregorian' );
 	$_POST = array();
 	wp_set_current_user( 0 );
+} );
+
+// 1.6.18: آیکون‌های صفحه‌ی «تبدیل امتیازات به جوایز» با تصاویر پوشه‌ی icon جایگزین شده‌اند.
+t( 'v1.6.18: reward icons are the new icon-folder images', function () {
+	$md5_spot = array(
+		'r01.png' => '50b65066791f126304c5945e86c9605a', // متر (۱۴۰ امتیاز).
+		'r13.png' => '6addac61521590a34e92e9d90fd23d94', // فلاسک.
+		'r25.png' => '9d7dc380e470dbcde328e6b2178e40cd', // دستگاه پرس لوله.
+	);
+	for ( $i = 1; $i <= 25; $i++ ) {
+		$f = '/plugin/assets/img/rewards/r' . str_pad( (string) $i, 2, '0', STR_PAD_LEFT ) . '.png';
+		ok( is_file( $f ), 'icon missing: ' . $f );
+		$head = (string) file_get_contents( $f, false, null, 0, 24 );
+		eq( "\x89PNG", substr( $head, 0, 4 ), 'not a png: ' . $f );
+		eq( 300, unpack( 'N', substr( $head, 16, 4 ) )[1], 'width must be 300: ' . $f );
+		eq( 300, unpack( 'N', substr( $head, 20, 4 ) )[1], 'height must be 300: ' . $f );
+	}
+	foreach ( $md5_spot as $name => $want ) {
+		eq( $want, md5_file( '/plugin/assets/img/rewards/' . $name ), 'icon bytes replaced: ' . $name );
+	}
+	// نگاشت معنایی: تصویر «متر» باید همان r01 باشد (امتیاز ۱۴۰ داخل نشان).
+	ok( md5_file( '/plugin/assets/img/rewards/r01.png' ) === md5_file( '/plugin/assets/img/rewards/r13.png' ) ? false : true, 'icons must be distinct' );
+} );
+
+t( 'v1.6.18: ensure_icons refreshes stale uploaded copies (site migration)', function () {
+	$copy = '/uploads/mjc-icons/r01.png';
+	ok( is_file( $copy ), 'uploaded copy missing' );
+	file_put_contents( $copy, 'STALE-OLD-ICON-BYTES' ); // شبیه‌سازی نسخه‌ی قدیمی روی سایت.
+	delete_option( 'mjc_rewards_icons_version' );
+	MJC_Rewards::ensure_icons();
+	eq( 2, (int) get_option( 'mjc_rewards_icons_version', 0 ), 'migration must complete' );
+	eq( md5_file( '/plugin/assets/img/rewards/r01.png' ), md5_file( $copy ), 'stale copy must be refreshed from the new icon' );
+	// اجرای دوباره بدون تغییر (دروازه‌ی نسخه).
+	$m = filemtime( $copy );
+	MJC_Rewards::ensure_icons();
+	eq( $m, filemtime( $copy ), 'second run must not rewrite' );
+} );
+
+t( 'v1.6.18: uploaded icon urls are cache-busted', function () {
+	$url = MJC_Rewards::icon_cache_bust( 'http://x/wp-content/uploads/mjc-icons/r01.png' );
+	contains( $url, 'mjc_ic=', 'uploaded icon urls must carry the icon version' );
+	$plain = MJC_Rewards::icon_cache_bust( 'http://x/wp-content/plugins/mojrian-club/assets/img/rewards/r01.png' );
+	not_contains( $plain, 'mjc_ic=', 'plugin preset urls need no cache-bust' );
 } );
 
 t( 'final invariants', function () {
