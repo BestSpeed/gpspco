@@ -66,8 +66,10 @@ class MJC_Metaboxes {
 	public static function campaign_box( $post ) {
 		wp_nonce_field( 'mjc_meta', 'mjc_meta_nonce' );
 		$end     = get_post_meta( $post->ID, 'mjc_end_date', true );
+		$end_fa  = $end ? MJC_Jalali::datepicker_value( $end ) : '';
 		$winners = get_post_meta( $post->ID, 'mjc_winners', true );
-		echo '<p><label>تاریخ پایان (میلادی YYYY-MM-DD): <input type="text" name="mjc_end_date" value="' . esc_attr( $end ) . '" placeholder="2026-12-31" /></label></p>';
+		echo '<p><label>تاریخ پایان (شمسی YYYY/MM/DD): <input type="text" name="mjc_end_date" value="' . esc_attr( $end_fa ) . '" placeholder="1404/12/29" dir="ltr" style="width:130px;" /></label></p>';
+		echo '<p class="description">تاریخ پایان کمپین را به شمسی وارد کنید (مثال: 1404/12/29).</p>';
 		if ( $winners ) {
 			$ids = json_decode( (string) $winners, true );
 			echo '<p><strong>برندگان:</strong> ';
@@ -111,8 +113,20 @@ class MJC_Metaboxes {
 			'mjc_points_cost'  => 'intval',
 			'mjc_stock'        => 'intval',
 			'mjc_duration'     => 'intval',
-			'mjc_end_date'     => 'sanitize_text_field',
 		);
+		// تاریخ پایان کمپین به شمسی دریافت و به میلادی ذخیره می‌شود (سازگاری با ورودی میلادی قدیمی).
+		if ( isset( $_POST['mjc_end_date'] ) ) {
+			$raw_end = sanitize_text_field( wp_unslash( $_POST['mjc_end_date'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			$raw_en  = mjc_to_en_digits( trim( $raw_end ) );
+			$end     = '';
+			if ( preg_match( '/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/', $raw_en, $m ) && (int) $m[1] >= 1700 ) {
+				// ورودی میلادی (سازگاری با مقادیر قدیمی).
+				$end = sprintf( '%04d-%02d-%02d', (int) $m[1], (int) $m[2], (int) $m[3] );
+			} else {
+				$end = MJC_Jalali::parse_input( $raw_end );
+			}
+			update_post_meta( $post_id, 'mjc_end_date', $end );
+		}
 		foreach ( $fields as $key => $sanitize ) {
 			if ( isset( $_POST[ $key ] ) ) {
 				update_post_meta( $post_id, $key, call_user_func( $sanitize, wp_unslash( $_POST[ $key ] ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput

@@ -1075,6 +1075,38 @@ t( 'v1.6.16: login_redirect targets club members and leaves others alone', funct
 	wp_set_current_user( 0 );
 } );
 
+// 1.6.17: تاریخ پایان کمپین در تنظیمات باید شمسی باشد.
+t( 'v1.6.17: campaign end date field is Jalali in admin settings', function () {
+	global $admin_id;
+	$cid = wp_insert_post( array( 'post_type' => 'mjc_campaign', 'post_title' => 'کمپین تاریخ شمسی', 'post_status' => 'publish' ) );
+	update_post_meta( $cid, 'mjc_end_date', '2026-12-31' ); // مقدار قدیمیِ میلادی.
+	$post = get_post( $cid );
+	ob_start();
+	MJC_Metaboxes::campaign_box( $post );
+	$out = ob_get_clean();
+	contains( $out, 'تاریخ پایان (شمسی YYYY/MM/DD)', 'label must say Shamsi' );
+	not_contains( $out, 'میلادی YYYY-MM-DD', 'Gregorian label must be gone' );
+	contains( $out, 'value="' . esc_attr( MJC_Jalali::datepicker_value( '2026-12-31' ) ) . '"', 'stored date must display as Jalali' );
+	contains( $out, '1404/12/29', 'placeholder must be a Jalali example' );
+	// ذخیره‌ی ورودی شمسی → میلادی در دیتابیس.
+	wp_set_current_user( $admin_id );
+	$_POST = array(
+		'mjc_meta_nonce' => wp_create_nonce( 'mjc_meta' ),
+		'mjc_end_date'   => '1404/07/21',
+	);
+	MJC_Metaboxes::save( $cid );
+	$stored = get_post_meta( $cid, 'mjc_end_date', true );
+	eq( MJC_Jalali::parse_input( '1404/07/21' ), (string) $stored, 'Jalali input must be converted to Gregorian for storage' );
+	ok( (string) $stored !== '1404/07/21', 'raw Jalali must not be stored' );
+	eq( '1404/07/21', MJC_Jalali::datepicker_value( $stored ), 'roundtrip must show the same Jalali date' );
+	// سازگاری: ورودی میلادی قدیمی همچنان بدون تغییر ذخیره می‌شود.
+	$_POST['mjc_end_date'] = '2026-12-31';
+	MJC_Metaboxes::save( $cid );
+	eq( '2026-12-31', (string) get_post_meta( $cid, 'mjc_end_date', true ), 'legacy Gregorian input must stay Gregorian' );
+	$_POST = array();
+	wp_set_current_user( 0 );
+} );
+
 t( 'final invariants', function () {
 	eq( count( array_filter( (array) $GLOBALS['mjc_stub_sql_unknown'] ) ), 0, 'unknown SQL: ' . json_encode( $GLOBALS['mjc_stub_sql_unknown'], JSON_UNESCAPED_UNICODE ) );
 	eq( count( (array) $GLOBALS['mjc_stub_violations'] ), 0, 'column violations: ' . json_encode( $GLOBALS['mjc_stub_violations'], JSON_UNESCAPED_UNICODE ) );
