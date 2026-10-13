@@ -20,6 +20,7 @@ class MJC_Auth {
 	public static function hooks() {
 		// جلوگیری از ورود کاربران معلق/تأییدنشده به بخش اعضا (به‌جز ادمین‌ها).
 		add_action( 'wp_login', array( __CLASS__, 'after_login' ), 10, 2 );
+		add_filter( 'authenticate', array( __CLASS__, 'authenticate_mobile' ), 30, 3 );
 	}
 
 	/**
@@ -71,7 +72,9 @@ class MJC_Auth {
 			return new WP_Error( 'mjc_exists', 'این شماره موبایل قبلاً ثبت شده است. از گزینه‌ی «ورود» استفاده کنید.' );
 		}
 		if ( strlen( $password ) < 8 ) {
-			$password = wp_generate_password( 12, true, false );
+			// رمز انتخابی کاربر باید عیناً روی حساب وردپرس بنشیند تا ورود از «لاگین سایت» هم کار کند؛
+			// جایگزینی بی‌صدای رمز با مقدار تصادفی باعث می‌شد کاربر هرگز نتواند وارد شود.
+			return new WP_Error( 'mjc_fields', 'رمز عبور باید حداقل ۸ کاراکتر باشد.' );
 		}
 
 		$user_id = wp_insert_user( array(
@@ -137,6 +140,36 @@ class MJC_Auth {
 	 * @param string $password رمز.
 	 * @return true|WP_Error
 	 */
+	/**
+	 * ورود از «لاگین سایت» (wp-login.php) با شماره موبایل به هر قالبی (0912...، ارقام فارسی، جداکننده‌دار).
+	 *
+	 * نام کاربریِ ثبت‌نام در باشگاه، شماره‌ی نرمال‌شده (989...) است ولی کاربران در لاگین سایت
+	 * موبایل را به شکل رایج وارد می‌کنند. بعد از ناموفق‌بودن احراز هویت پیش‌فرض وردپرس،
+	 * با شکل نرمال‌شده دوباره تلاش می‌کنیم تا همان رمز عبور روی همان حساب بنشیند.
+	 *
+	 * @param WP_User|WP_Error|null $user نتیجه‌ی احراز هویت تا اینجا.
+	 * @param string $username نام کاربری واردشده.
+	 * @param string $password رمز عبور.
+	 * @return WP_User|WP_Error|null|object
+	 */
+	public static function authenticate_mobile( $user, $username, $password ) {
+		if ( $user && ! is_wp_error( $user ) ) {
+			return $user;
+		}
+		$mobile = mjc_normalize_mobile( $username );
+		if ( ! $mobile || $mobile === trim( (string) $username ) ) {
+			return $user;
+		}
+		if ( ! username_exists( $mobile ) ) {
+			return $user;
+		}
+		$found = wp_authenticate_username_password( null, $mobile, (string) $password );
+		if ( $found && ! is_wp_error( $found ) ) {
+			return apply_filters( 'wp_authenticate_user', $found, (string) $password );
+		}
+		return $user;
+	}
+
 	public static function login( $username, $password ) {
 		$username = trim( (string) $username );
 		$mobile   = mjc_normalize_mobile( $username );

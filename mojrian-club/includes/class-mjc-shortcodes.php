@@ -174,7 +174,8 @@ class MJC_Shortcodes {
 		} elseif ( 'textarea' === $args['type'] ) {
 			$html .= '<textarea name="' . esc_attr( $args['name'] ) . '" id="f_' . esc_attr( $args['name'] ) . '" rows="' . (int) $args['rows'] . '" placeholder="' . esc_attr( $args['placeholder'] ) . '"' . $req . '>' . esc_textarea( $args['value'] ) . '</textarea>';
 		} else {
-			$html .= '<input type="' . esc_attr( $args['type'] ) . '" name="' . esc_attr( $args['name'] ) . '" id="f_' . esc_attr( $args['name'] ) . '" value="' . esc_attr( $args['value'] ) . '" placeholder="' . esc_attr( $args['placeholder'] ) . '"' . $req . ' />';
+			$min = ( 'password' === $args['type'] ) ? ' minlength="8"' : '';
+			$html .= '<input type="' . esc_attr( $args['type'] ) . '" name="' . esc_attr( $args['name'] ) . '" id="f_' . esc_attr( $args['name'] ) . '" value="' . esc_attr( $args['value'] ) . '" placeholder="' . esc_attr( $args['placeholder'] ) . '"' . $min . $req . ' />';
 		}
 		$html .= '</div>';
 		return $html;

@@ -408,6 +408,25 @@ function wp_set_auth_cookie( $user_id, $remember = false, $secure = '' ) {
 	$GLOBALS['mjc_stub']->auth_cookies[] = (int) $user_id;
 }
 
+function wp_authenticate_username_password( $user, $username, $password ) {
+	if ( $user instanceof WP_User ) {
+		return $user;
+	}
+	$username = trim( (string) $username );
+	$password = (string) $password;
+	if ( '' === $username || '' === $password ) {
+		return new WP_Error( 'empty_username', 'نام کاربری یا رمز عبور خالی است.' );
+	}
+	$u = get_user_by( 'login', $username );
+	if ( ! $u ) {
+		return new WP_Error( 'invalid_username', 'نام کاربری نادرست است.' );
+	}
+	if ( isset( $u->user_pass ) && $u->user_pass !== $password ) {
+		return new WP_Error( 'incorrect_password', 'رمز عبور نادرست است.' );
+	}
+	return $u;
+}
+
 function wp_signon( $credentials = array(), $secure = '' ) {
 	$creds = (array) $credentials;
 	$user  = false;

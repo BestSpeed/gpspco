@@ -631,9 +631,16 @@
 	background: rgba(255, 255, 255, .25); font-size: 1.15rem; line-height: 1;
 }
 
-/* اندازه‌ی عنوان‌ها (1.6.10): کمپین‌ها، مطالب راهنما، ورود و صفحات دوم — ۲۰ پیکسل.
+/* اندازه‌ی عنوان‌ها (1.6.12): کمپین‌ها، مطالب راهنما، ورود و صفحات دوم — ۳۰ پیکسل بولد.
    صفحات اصلی (صفحه‌ی اصلی باشگاه و هیروی راهنمای باشگاه) از این قاعده مستثنی هستند. */
-.mjc-page-title, h1.mjc-page-title, h2.mjc-page-title { font-size: 20px; }
-.mjc-campaign h1, .mjc-campaign h2, .mjc-campaign h3 { font-size: 20px; }
-.mjc-guide-article h1, .mjc-article-card h3 { font-size: 20px; }
-.mjc-acc-title, .mjc-rewards-title, .mjc-profile-head { font-size: 20px; }
+.mjc-page-title, h1.mjc-page-title, h2.mjc-page-title { font-size: 30px; font-weight: 700; }
+.mjc-campaign h1, .mjc-campaign h2, .mjc-campaign h3 { font-size: 30px; font-weight: 700; }
+.mjc-guide-article h1, .mjc-article-card h3 { font-size: 30px; font-weight: 700; }
+.mjc-acc-title, .mjc-rewards-title, .mjc-profile-head { font-size: 30px; font-weight: 700; }
+
+/* عنوان‌های مطالب راهنمای باشگاه: جدایی از متن اصلی با فاصله + رنگ اصلی تنظیمات افزونه
+   (primary_color از تنظیمات روی --mjc-primary می‌نشیند). */
+.mjc-guide-article h1 { color: var(--mjc-primary); margin: 0 0 18px; }
+.mjc-article-card h3 { color: var(--mjc-primary); margin-bottom: 10px; }
+.mjc-guide-content { margin-top: 16px; }
+.mjc-guide-content h2, .mjc-guide-content h3, .mjc-guide-content h4 { color: var(--mjc-primary); margin: 22px 0 10px; }

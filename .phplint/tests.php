@@ -797,18 +797,18 @@ t( 'guide: rewrite flush runs after ALL plugin CPT registrations', function () {
 } );
 
 // 1.6.10: اندازه‌ی عنوان‌ها و جای عنوان کمپین.
-t( 'v1.6.10: campaign title is below the campaign image and 20px', function () {
+t( 'v1.6.10: campaign title is below the campaign image and 30px bold', function () {
 	$tpl = file_get_contents( '/plugin/public/templates/single-mjc_campaign.php' );
 	ok( strpos( $tpl, 'get_the_post_thumbnail' ) < strpos( $tpl, '<h1>' ), 'campaign title must be below the image in single template' );
 	$css = file_get_contents( '/plugin/assets/css/mojrian-club.css' );
-	contains( $css, '.mjc-campaign h1, .mjc-campaign h2, .mjc-campaign h3 { font-size: 20px; }', 'campaign titles must be 20px' );
+	contains( $css, '.mjc-campaign h1, .mjc-campaign h2, .mjc-campaign h3 { font-size: 30px; font-weight: 700; }', 'campaign titles must be 30px bold' );
 } );
 
-t( 'v1.6.10: guide article, login and secondary page titles are 20px', function () {
+t( 'v1.6.10: guide article, login and secondary page titles are 30px bold', function () {
 	$css = file_get_contents( '/plugin/assets/css/mojrian-club.css' );
-	contains( $css, '.mjc-guide-article h1, .mjc-article-card h3 { font-size: 20px; }', 'guide article titles must be 20px' );
-	contains( $css, '.mjc-page-title, h1.mjc-page-title, h2.mjc-page-title { font-size: 20px; }', 'page-title class must be 20px' );
-	contains( $css, '.mjc-acc-title, .mjc-rewards-title, .mjc-profile-head { font-size: 20px; }', 'dashboard/rewards/profile titles must be 20px' );
+	contains( $css, '.mjc-guide-article h1, .mjc-article-card h3 { font-size: 30px; font-weight: 700; }', 'guide article titles must be 30px bold' );
+	contains( $css, '.mjc-page-title, h1.mjc-page-title, h2.mjc-page-title { font-size: 30px; font-weight: 700; }', 'page-title class must be 30px bold' );
+	contains( $css, '.mjc-acc-title, .mjc-rewards-title, .mjc-profile-head { font-size: 30px; font-weight: 700; }', 'dashboard/rewards/profile titles must be 30px bold' );
 	// عنوان هیروی راهنمای باشگاه (صفحه‌ی اصلی) نباید ۲۰ شود.
 	not_contains( $css, '.mjc-guide-hero h1, .mjc-article-card h3', 'guide hero must not be in the 20px rule' );
 	wp_set_current_user( 0 );
@@ -839,6 +839,44 @@ t( 'v1.6.11: dashboard text matches the account text exactly', function () {
 	not_contains( $out, 'پخش هدایایی تبلیغاتی', 'old paragraph gone' );
 	not_contains( $out, 'توضیحات کلید های قسمت حساب کاربری', 'old subtitle gone' );
 	not_contains( $out, 'خروج شدن از قسمت', 'old item gone' );
+} );
+
+// 1.6.12: عنوان‌های ۳۰ پیکسلی بولد، رنگ اصلی عنوان‌های مطالب راهنما، ورود از لاگین سایت.
+t( 'v1.6.12: guide article titles use primary color with gap from body text', function () {
+	$css = file_get_contents( '/plugin/assets/css/mojrian-club.css' );
+	contains( $css, '.mjc-guide-article h1 { color: var(--mjc-primary); margin: 0 0 18px; }', 'guide article title: primary color + gap' );
+	contains( $css, '.mjc-guide-content h2, .mjc-guide-content h3, .mjc-guide-content h4 { color: var(--mjc-primary); margin: 22px 0 10px; }', 'inner headings: primary color + spacing' );
+	contains( $css, '.mjc-guide-content { margin-top: 16px; }', 'body separated from title' );
+	// رنگ اصلی از تنظیمات افزونه (--mjc-primary که MJC_Public از primary_color می‌سازد).
+	$pub = file_get_contents( '/plugin/public/class-mjc-public.php' );
+	contains( $pub, "primary_color", 'primary color comes from plugin settings' );
+	contains( $pub, '--mjc-primary:', 'settings color injected as --mjc-primary' );
+} );
+
+t( 'v1.6.12: club registration password works for site login', function () {
+	$r = MJC_Auth::register( array(
+		'full_name' => 'کاربر ورود سایت', 'mobile' => '09125550001', 'national_code' => '0012345679',
+		'province' => 'تهران', 'city' => 'تهران', 'job_type' => 'installer', 'password' => 'MyPass12345',
+	) );
+	ok( ! is_wp_error( $r ), 'register must succeed: ' . ( is_wp_error( $r ) ? $r->get_error_message() : '' ) );
+	$u = get_userdata( (int) $r );
+	eq( $u->user_pass, 'MyPass12345', 'WP password must be the chosen password (site login works)' );
+	$r2 = MJC_Auth::register( array(
+		'full_name' => 'کاربر رمز کوتاه', 'mobile' => '09125550002', 'national_code' => '0012345680',
+		'province' => 'تهران', 'city' => 'تهران', 'job_type' => 'installer', 'password' => '123',
+	) );
+	ok( is_wp_error( $r2 ), 'short password must be rejected, not silently randomized' );
+} );
+
+t( 'v1.6.12: site login accepts mobile in any common format', function () {
+	$u = MJC_Auth::authenticate_mobile( null, '09125550001', 'MyPass12345' );
+	ok( $u && ! is_wp_error( $u ), '0912-format must authenticate for site login' );
+	$u2 = MJC_Auth::authenticate_mobile( null, '۰۹۱۲۵۵۵۰۰۰۱', 'MyPass12345' );
+	ok( $u2 && ! is_wp_error( $u2 ), 'persian digits must authenticate' );
+	$u3 = MJC_Auth::authenticate_mobile( null, '0912-555-0001', 'MyPass12345' );
+	ok( $u3 && ! is_wp_error( $u3 ), 'formatted mobile must authenticate' );
+	$bad = MJC_Auth::authenticate_mobile( null, '09125550001', 'wrongpass' );
+	ok( is_wp_error( $bad ) || ! $bad, 'wrong password must fail' );
 } );
 
 t( 'final invariants', function () {
