@@ -1045,6 +1045,36 @@ t( 'v1.6.15: taken username is rejected and register stores data on the WP accou
 	wp_set_current_user( 0 );
 } );
 
+// 1.6.16: ورود با کاربر باشگاه از «لاگین وردپرس» نباید درخواست‌های AJAX/JSON را بشکند.
+t( 'v1.6.16: login_redirect is a pure filter (no wp_login redirect+exit)', function () {
+	// هوک wp_login با redirect+exit حذف شده؛ منشأ خطای «JSON Parse error: Unrecognized token \'<\'».
+	$auth_src = file_get_contents( '/plugin/includes/class-mjc-auth.php' );
+	not_contains( $auth_src, "add_action( 'wp_login'", 'must not hook wp_login action anymore' );
+	not_contains( $auth_src, 'wp_safe_redirect( add_query_arg( ( $member', 'must not redirect+exit during login' );
+	contains( $auth_src, "add_filter( 'login_redirect'", 'post-login destination must use the login_redirect filter' );
+} );
+
+t( 'v1.6.16: login_redirect targets club members and leaves others alone', function () {
+	global $admin_id, $moder_id;
+	// عضو تأییدشده → داشبورد باشگاه.
+	$uid = mjc_test_register( '09128880001', 'کاربر ورود تست' );
+	mjc_test_set_status( $uid, 'approved' );
+	$u = get_userdata( $uid );
+	$to = MJC_Auth::login_redirect( admin_url(), '', $u );
+	ok( 0 === strpos( $to, mjc_page_url( 'dashboard' ) ), 'approved member must land on the club dashboard' );
+	// عضو در انتظار تأیید → صفحه‌ی ورود + پیام not_approved.
+	$uid2 = mjc_test_register( '09128880002', 'کاربر در انتظار' );
+	$u2 = get_userdata( $uid2 );
+	$to2 = MJC_Auth::login_redirect( admin_url(), '', $u2 );
+	ok( 0 === strpos( $to2, mjc_page_url( 'login' ) ), 'pending member must land on the login page' );
+	contains( $to2, 'mjc_notice=not_approved', 'pending member must see the not-approved message' );
+	// مدیر باشگاه و کاربر عادی → مقصد دست‌نخورده.
+	eq( admin_url(), MJC_Auth::login_redirect( admin_url(), '', get_userdata( $moder_id ) ), 'club staff redirect must be untouched' );
+	$plain = mjc_stub_create_user( 'plain-user-x', array( 'subscriber' ), 'plain-x@test.local' );
+	eq( admin_url(), MJC_Auth::login_redirect( admin_url(), '', get_userdata( $plain ) ), 'non-club user redirect must be untouched' );
+	wp_set_current_user( 0 );
+} );
+
 t( 'final invariants', function () {
 	eq( count( array_filter( (array) $GLOBALS['mjc_stub_sql_unknown'] ) ), 0, 'unknown SQL: ' . json_encode( $GLOBALS['mjc_stub_sql_unknown'], JSON_UNESCAPED_UNICODE ) );
 	eq( count( (array) $GLOBALS['mjc_stub_violations'] ), 0, 'column violations: ' . json_encode( $GLOBALS['mjc_stub_violations'], JSON_UNESCAPED_UNICODE ) );

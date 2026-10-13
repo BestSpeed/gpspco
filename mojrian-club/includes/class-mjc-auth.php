@@ -19,7 +19,7 @@ class MJC_Auth {
 	 */
 	public static function hooks() {
 		// جلوگیری از ورود کاربران معلق/تأییدنشده به بخش اعضا (به‌جز ادمین‌ها).
-		add_action( 'wp_login', array( __CLASS__, 'after_login' ), 10, 2 );
+		add_filter( 'login_redirect', array( __CLASS__, 'login_redirect' ), 10, 3 );
 		add_filter( 'authenticate', array( __CLASS__, 'authenticate_mobile' ), 30, 3 );
 	}
 
@@ -29,16 +29,21 @@ class MJC_Auth {
 	 * @param string   $user_login نام کاربری.
 	 * @param WP_User  $user کاربر.
 	 */
-	public static function after_login( $user_login, $user ) {
+	public static function login_redirect( $redirect_to, $requested_redirect_to, $user ) {
+		if ( ! $user || is_wp_error( $user ) ) {
+			return $redirect_to;
+		}
 		if ( user_can( $user, 'mjc_manage_club' ) ) {
-			return;
+			return $redirect_to;
 		}
-		if ( in_array( MJC_Roles::MEMBER, (array) $user->roles, true ) || MJC_Members::get_by_user( $user->ID ) ) {
-			$member = MJC_Members::get_by_user( $user->ID );
-			$target = ( $member && 'approved' === $member->status ) ? mjc_page_url( 'dashboard' ) : mjc_page_url( 'login' );
-			wp_safe_redirect( add_query_arg( ( $member && 'approved' !== $member->status ) ? array( 'mjc_notice' => 'not_approved' ) : array(), $target ) );
-			exit;
+		$member = MJC_Members::get_by_user( $user->ID );
+		if ( ! $member && ! in_array( MJC_Roles::MEMBER, (array) $user->roles, true ) ) {
+			return $redirect_to;
 		}
+		if ( $member && 'approved' === $member->status ) {
+			return mjc_page_url( 'dashboard' );
+		}
+		return add_query_arg( 'mjc_notice', 'not_approved', mjc_page_url( 'login' ) );
 	}
 
 	/**

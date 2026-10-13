@@ -245,7 +245,8 @@ function get_user_by( $field, $value ) {
 }
 
 function user_can( $user_id, $cap ) {
-	$u = get_userdata( $user_id );
+	// مطابق وردپرس: WP_User|int — شیء کاربر نباید به int تبدیل شود.
+	$u = is_object( $user_id ) ? $user_id : get_userdata( $user_id );
 	return $u ? $u->has_cap( $cap ) : false;
 }
 
